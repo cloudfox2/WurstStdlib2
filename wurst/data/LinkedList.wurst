@@ -43,6 +43,14 @@ public class LinkedList<T>
 		for elem in elems
 			add(elem)
 
+	function reset(vararg T elems)
+		clear()
+		for elem in elems
+			let entry = new LLEntry<T>(elem, dummy.prev, dummy)
+			dummy.prev.next = entry
+			dummy.prev = entry
+			size++
+
 	/** Returns the element at the specified index */
 	function get(int index) returns T
 		return getEntry(index).elem

@@ -19,7 +19,7 @@ public interface TooltipGenerator
 	function applyToDef(AbilityDefinition def)
 		
 public class AbilityDefinition
-	protected ObjectDefinition def
+	ObjectDefinition def
 	protected int lvls = 1
 	
 	TooltipGenerator tooltipGen = null

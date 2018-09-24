@@ -98,10 +98,10 @@ public abstract class CallbackPeriodic
 		t.release()
 		
 public abstract class CallbackCounted
-	private var count = 0
+	var count = 0
 	private timer t
 	
-	protected abstract function call(thistype cb)
+	abstract function call(thistype cb)
 
 	function start(real time, int callAmount)
 		this.t = getTimer()
