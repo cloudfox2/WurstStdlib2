@@ -53,6 +53,9 @@ public class LinkedList<T>
 			dummy.prev.next = entry
 			dummy.prev = entry
 			size++
+	
+	function ran() returns T
+		return get(GetRandomInt(0, size - 1))
 
 	/** Returns the element at the specified index */
 	function get(int index) returns T

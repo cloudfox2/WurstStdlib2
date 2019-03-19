@@ -132,8 +132,8 @@ public function vec2.toString() returns string
 	return "Vector2 [" + this.x.toString() + ", " + this.y.toString() + "]"
 
 /** Get this vetor's angle to another one */
-public function vec2.angleTo(vec2 v) returns angle
-	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
+public function vec2.angleTo(vec2 v) returns real
+	return Atan2(v.y - this.y, v.x - this.x) * RADTODEG
 
 /** Get a polar offset from this vector */
 public function vec2.polarOffset(angle ang, real dist) returns vec2

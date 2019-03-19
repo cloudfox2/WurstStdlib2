@@ -18,22 +18,22 @@ public enum Option
 	UNIVERSALSPELL
 	UNIQUECAST
 
-public enum Targettype
+public enum TT
 	NONE
 	UNIT
 	POINT
 	POINTUNIT
 	PASSIVE
 
-public function Targettype.toString() returns string
+public function TT.toString() returns string
 	switch this
 		case NONE
 			return "Instant Cast"
-		case Targettype.POINT
+		case TT.POINT
 			return "Point Target"
-		case Targettype.UNIT
+		case TT.UNIT
 			return "Unit Target"
-		case Targettype.POINTUNIT
+		case TT.POINTUNIT
 			return "Point & Unit Target"
 		case PASSIVE
 			return "Passive"
@@ -85,7 +85,7 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 			setArtSpecial("")
 			setArtTarget("")
 
-	function presetTargetTypes(Targettype ttype)
+	function presetTargetTypes(TT ttype)
 		presetTargetType(lvl -> ttype castTo int)
 
 	function presetOption(Option opt, boolean flag)

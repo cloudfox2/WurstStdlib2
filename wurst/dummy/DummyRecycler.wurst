@@ -37,7 +37,7 @@ public class DummyRecycler
 			u.remove()
 		else
 			angleQueues[smallestQueue].enqueue(u)
-			u..setXY(boundMax)..pause()..setFacing((smallestQueue * ANGLE_DEGREE).asAngleDegrees())..setScale(1)..setVertexColor(COLOR_WHITE)
+			u..setXY(boundMax)..pause()..setFacing((smallestQueue * ANGLE_DEGREE))..setScale(1)..setVertexColor(COLOR_WHITE)
 
 
 	static function recycle(unit u, real delay)

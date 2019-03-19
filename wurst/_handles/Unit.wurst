@@ -148,13 +148,8 @@ public function unit.getUnitAcquireRange() returns real
 public function unit.getCurrentOrder() returns int
 	return GetUnitCurrentOrder(this)
 
-@deprecated("Use .getFacingAngle() instead.") public function unit.getFacing() returns real
+public function unit.getFacing() returns real
 	return GetUnitFacing(this)
-
-/** Returns the facing of the unit as an angle.
-	Use this to avoid confusion between radians and degrees */
-public function unit.getFacingAngle() returns angle
-	return GetUnitFacing(this).asAngleDegrees()
 
 public function unit.getFlyHeight() returns real
 	return GetUnitFlyHeight(this)
@@ -408,8 +403,8 @@ public function unit.setColor(playercolor c)
 public function unit.setExploded(boolean exploded)
 	SetUnitExploded(this, exploded)
 
-public function unit.setFacing(angle a)
-	SetUnitFacing(this, a.degrees())
+public function unit.setFacing(real a)
+	SetUnitFacing(this, a)
 
 public function unit.setFlyHeight(real height, real rate)
 	SetUnitFlyHeight(this, height, rate)
@@ -449,13 +444,8 @@ public function unit.setPosReal(vec3 pos)
 public function unit.setPos(real x, real y)
 	SetUnitPosition(this, x, y)
 
-@deprecated("Use .setPropWindow(angle value) instead.") public function unit.setPropWindow(real radians)
+public function unit.setPropWindow(real radians)
 	SetUnitPropWindow(this, radians)
-
-/**	A prop window of 0 prevents the unit from moving, but
-	it can still turn around.*/
-public function unit.setPropWindow(angle value)
-	SetUnitPropWindow(this, value.radians())
 
 public function unit.setScale(real scale)
 	SetUnitScale(this, scale, scale, scale)
@@ -548,8 +538,8 @@ public function unit.getDefaultMovespeed() returns real
 	return GetUnitDefaultMoveSpeed(this)
 
 /** Returns the default prop window of the unit as angle.*/
-public function unit.getDefaultPropWindow() returns angle
-	return GetUnitDefaultPropWindow(this).fromDeg()
+public function unit.getDefaultPropWindow() returns real
+	return GetUnitDefaultPropWindow(this)
 
 public function unit.getDefaultTurnSpeed() returns real
 	return GetUnitDefaultTurnSpeed(this)

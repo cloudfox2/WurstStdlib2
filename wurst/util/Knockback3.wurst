@@ -121,7 +121,7 @@ public class Knockback3
 	*/
 	static function add(unit u, vec2 target, real groundSpeed)
 		let t	 = (target - u.getPos()).length() / groundSpeed
-		let theta = u.getPos().angleTo(target)
+		let theta = u.getPos().angleTo(target).asAngleDegrees()
 		let velZ  = gravity * t / 2. / ANIMATION_PERIOD
 		let vel   = theta.toVec(groundSpeed).withZ(velZ)
 		let speed = vel.length()
@@ -186,7 +186,7 @@ public class Knockback3
 			knockback.u.setMoveSpeed(0.)
 
 		if USE_PROP_WINDOW_MODIFIERS
-			knockback.u.setPropWindow(angle(0.))
+			knockback.u.setPropWindow(0.)
 
 
 	private static bool hitDestructable

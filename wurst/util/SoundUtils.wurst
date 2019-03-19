@@ -22,7 +22,7 @@ constant SOUND_MIN_DIST = 600.
 constant SOUND_MAX_DIST = 8000.
 constant SOUND_DIST_CUT = 1500.
 
-class SoundInstance
+public class SoundInstance
 	var pos = vec3(0,0,0)
 	sound snd
 	SoundDefinition soundDef

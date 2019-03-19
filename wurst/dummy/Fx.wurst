@@ -103,11 +103,11 @@ public class Fx
 		dummy.addEffect(fx, "origin").destr()
 
 	/** Get the xy angle */
-	function getXYAngle() returns angle
-		return dummy.getFacingAngle()
+	function getXYAngle() returns real
+		return dummy.getFacing()
 
 	/** Set the xy angle */
-	function setXYAngle(angle value)
+	function setXYAngle(real value)
 		dummy.setFacing(value)
 
 	/** Creates a new dummy with the given facing in order to achieve instant turning. */
