@@ -5,10 +5,10 @@ import LinkedList
 function testAddRemove()
 	let list = new LinkedList<int>()
 	list.size().assertEquals(0)
-	
+
 	list..add(1, 2, 3, 4)
 	list.size().assertEquals(4)
-	
+
 	let itr = list.staticItr()
 	while itr.hasNext()
 		itr.next()
@@ -19,33 +19,33 @@ function testAddRemove()
 @Test
 function testForLoop()
 	let list = new LinkedList<int>()
-	
+
 	list..add(1, 2, 3, 4)
-	
+
 	list.updateAll(i -> i + 1)
-	
+
 	var result = 0
 	for i in list
 		result += i
 
-	result.assertEquals(5+4+3+2)
+	result.assertEquals(5 + 4 + 3 + 2)
 
 @Test function testBackIter()
 	let list = new LinkedList<int>()
 	let list2 = new LinkedList<int>()
-	
+
 	list..add(1, 2, 3, 4)
 	list2..add(4, 3, 2, 1)
-	
+
 	let bi = list.backiterator()
 	let i = list2.iterator()
 	while bi.hasNext() and i.hasNext()
-		bi.next().assertEquals(i.next())	
+		bi.next().assertEquals(i.next())
 
 @Test function testAddAll()
 	let list = new LinkedList<int>()
 	let list2 = new LinkedList<int>()
-	
+
 	list..add(1, 2)
 	list2..add(3, 4)
 	list.addAll(list2)
@@ -56,12 +56,12 @@ function testForLoop()
 	var result = 0
 	for i in list
 		result += i
-	result.assertEquals(1+2+3+4)
+	result.assertEquals(1 + 2 + 3 + 4)
 
 @Test function testAddVararg()
 	let list = new LinkedList<int>()
 	let list2 = new LinkedList<int>()
-	
+
 	list.add(1, 2)
 	list2.add(3, 4)
 	list.addAll(list2)
@@ -72,15 +72,15 @@ function testForLoop()
 	var result = 0
 	for i in list
 		result += i
-	result.assertEquals(1+2+3+4)
+	result.assertEquals(1 + 2 + 3 + 4)
 
 @Test
 function testClosures()
 	let list = new LinkedList<int>()
 	list..add(1, 2, 3, 4)
-	
+
 	list.updateAll(i -> i * 2)
-	list.get(3).assertEquals(4*2)
+	list.get(3).assertEquals(4 * 2)
 
 	list.removeIf(i -> i > 4)
 	list.size().assertEquals(2)
@@ -104,9 +104,9 @@ function testGenerics()
 @Test function testSort()
 	let list = new LinkedList<int>()
 	for i = 0 to 400
-		list..add(GetRandomInt(-100, 100)*2 + 1)
+		list..add(GetRandomInt(-100, 100) * 2 + 1)
 	list.sort()
-	
+
 	let itr = list.iterator()
 	int i2 = 0
 	while itr.hasNext()
@@ -177,3 +177,15 @@ function testGenerics()
 @Test function testAsList()
 	asList(1,2,3,4).foldl<int>(0, (i, q) -> q + i)
 		.assertEquals(asList(4,3,2,1).foldl<int>(0, (i, q) -> q + i))
+
+
+@Test function testStringHashCollission()
+	let testlist = new LinkedList<string>
+	testlist.add("a")
+	testlist.add("b")
+	testlist.add("c")
+	testlist.has("a").assertTrue()
+	testlist.has("b").assertTrue()
+	testlist.has("c").assertTrue()
+	testlist.has("x").assertFalse()
+	testlist.has("A").assertFalse()

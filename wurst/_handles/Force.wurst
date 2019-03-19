@@ -1,5 +1,4 @@
 package Force
-
 import NoWurst
 
 public function force.destr()
@@ -36,6 +35,9 @@ public function force.enumEnemies(player whichPlayer, boolexpr filter)
 
 public function force.forEach(code callback)
 	ForForce(this, callback)
+
+public function force.getRandomPlayer() returns player
+	return ForcePickRandomPlayer(this)
 
 public function force.containsUnit(unit whichUnit) returns boolean
 	return IsUnitInForce(whichUnit, this)

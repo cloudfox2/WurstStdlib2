@@ -7,10 +7,13 @@ import ClosureForGroups
 import Real
 
 /**
-Doubly-linked list implementation that implements all common list, stack and queue operations.
-Permits all elements (including null).
-Use the Typecasting package if you require lists of warcraft handles.
-*/
+ * Doubly-linked list implementation that implements all common list, stack and queue operations.
+ * Permits all elements (including null).
+ * Use the Typecasting package if you require lists of warcraft handles.
+ * LinkedLists should be generally used anywhere you need a list, because they are the most versatile
+ * and fast in common operations. If you need faster contains or access operations on big lists,
+ * use HashList. If you want to limit each element's occurance to one, consider HashSet.
+ */
 public class LinkedList<T>
 	private var dummy = new LLEntry<T>(null, null, null)
 	protected var size = 0
@@ -101,7 +104,11 @@ public class LinkedList<T>
 		return dummy.prev.elem
 
 	/** Returns whether the lists contains the specified element */
-	function contains(T elem) returns boolean
+	@deprecated("Use .has instead") function contains(T elem) returns boolean
+		return has(elem)
+
+	/** Returns whether the lists contains the specified element */
+	function has(T elem) returns boolean
 		var entry = dummy.next
 		while entry != dummy
 			if entry.elem == elem
@@ -114,9 +121,10 @@ public class LinkedList<T>
 		let entry = getEntry(index)
 		entry.prev.next = entry.next
 		entry.next.prev = entry.prev
+		let res = entry.elem
 		destroy entry
 		size--
-		return entry.elem
+		return res
 
 	/** Removes the first occurence of t from this list */
 	function remove(T elem)
@@ -219,10 +227,26 @@ public class LinkedList<T>
 			r = r.next
 		destroy f
 
-	/** Pseudo-randomly changes the position of each element */
+	/** Performs a Fisher–Yates shuffle on this list */
 	function shuffle()
-		for i = 0 to size
-			add(removeAt(GetRandomInt(0, size-1)))
+		T array _a
+		let n = size()
+		var i0 = 0
+
+		let itr = iterator()
+		while itr.hasNext()
+			itr.next()
+			_a[i0] = itr.remove()
+			i0++
+
+		for i = n-1 downto 1
+			let j = GetRandomInt(0, i)
+			let tmp = _a[i]
+			_a[i] = _a[j]
+			_a[j] = tmp
+
+		for i = 0 to n-1
+			add(_a[i])
 
 	/** Adds the given element directly behind the element at the given index */
 	function addAt(T elem, int index)

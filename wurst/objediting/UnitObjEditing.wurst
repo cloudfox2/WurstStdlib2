@@ -1,6 +1,5 @@
 package UnitObjEditing
 import NoWurst
-
 import ObjEditingNatives
 import public TargetsAllowed
 import public ObjEditingCommons
@@ -252,6 +251,12 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 
 	construct(int newUnitId, int origUnitId)
 		super(newUnitId, origUnitId)
+
+	function setItemsSold(string data)
+		def.setString("usei", data)
+
+	function setUnitsSold(string data)
+		def.setString("useu", data)
 
 	function setHideMinimapDisplay(boolean flag)
 		def.setBoolean("uhom", flag)
@@ -800,6 +805,9 @@ public class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	function setFormationRank(int data)
 		def.setInt("ufor", data)
 
+	function setStructuresBuilt(string data)
+		def.setString("ubui", data)
+
 public class HeroDefinition extends UnitOrHeroDefinition
 
 	construct(int newId, int origId)
@@ -881,9 +889,6 @@ public class UnitDefinition extends UnitOrHeroDefinition
 	construct(int newId, int origId)
 		super(newId, origId)
 
-	function setStructuresBuilt(string data)
-		def.setString("ubui", data)
-
 	function setCasterUpgradeTips(string data)
 		def.setString("ucut", data)
 
@@ -903,9 +908,6 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 
 	function setUnitsTrained(string data)
 		def.setString("utra", data)
-
-	function setUnitsSold(string data)
-		def.setString("useu", data)
 
 	function setRevivesDeadHeros(boolean data)
 		def.setBoolean("urev", data)
@@ -930,9 +932,6 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 
 	function setNeutralBuildingShowsMinimapIcon(boolean data)
 		def.setBoolean("unbm", data)
-
-	function setItemsSold(string data)
-		def.setString("usei", data)
 
 	function setItemsMade(string data)
 		def.setString("umki", data)
@@ -954,9 +953,6 @@ public class BuildingAndHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	function setUnitsTrained(string data)
 		def.setString("utra", data)
 
-	function setUnitsSold(string data)
-		def.setString("useu", data)
-
 	function setRevivesDeadHeros(boolean data)
 		def.setBoolean("urev", data)
 
@@ -980,9 +976,6 @@ public class BuildingAndHeroDefinition extends UnitOrBuildingOrHeroDefinition
 
 	function setNeutralBuildingShowsMinimapIcon(boolean data)
 		def.setBoolean("unbm", data)
-
-	function setItemsSold(string data)
-		def.setString("usei", data)
 
 	function setItemsMade(string data)
 		def.setString("umki", data)

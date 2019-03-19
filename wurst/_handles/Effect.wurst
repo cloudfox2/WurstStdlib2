@@ -1,6 +1,5 @@
 package Effect
 import NoWurst
-import Vectors
 import Matrices
 import Quaternion
 import Colors
@@ -10,16 +9,64 @@ public function effect.destr()
 	DestroyEffect(this)
 
 public function flashEffect(string path, vec3 pos)
-	addEffect(path, pos).destr()
+	flashEffect(path, pos, 1.0)
 
 public function flashEffect(string path, vec2 pos)
-	flashEffect(path, pos.toVec3())
-	
+	flashEffect(path, pos, 1.0, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec2 pos, real scale)
+	flashEffect(path, pos, scale, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec3 pos, real scale)
+	flashEffect(path, pos, scale, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec2 pos, real scale, angle roll)
+	addEffect(path, pos)..setScale(scale)..setRoll(roll)..destr()
+
+public function flashEffect(string path, vec3 pos, real scale, angle roll)
+	addEffect(path, pos)..setScale(scale)..setRoll(roll)..destr()
+
+public function flashEffect(string path, widget target, string attachPointName)
+	addEffect(path, target, attachPointName).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, vec3 pos)
+	addEffect(abilityId, effType, pos).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j)
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, vec2 pos)
+	addEffect(abilityId, effType, pos).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, widget target, string attachPointName)
+	addEffect(abilityId, effType, target, attachPointName).destr()
+
 public function addEffect(string path, vec2 pos) returns effect
 	return AddSpecialEffect(path, pos.x, pos.y)
-	
+
 public function addEffect(string path, vec3 pos) returns effect
-	return AddSpecialEffect(path, pos.x, pos.y)
+	return AddSpecialEffect(path, pos.x, pos.y)..setPos(pos)
+
+public function addEffect(string path, widget target, string attachPointName) returns effect
+	return AddSpecialEffectTarget(path, target, attachPointName)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, vec2 pos) returns effect
+	return AddSpellEffectById(abilityId, effType, pos.x, pos.y)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, vec3 pos) returns effect
+	return AddSpellEffectById(abilityId, effType, pos.x, pos.y)..setPos(pos)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, widget target, string attachPointName) returns effect
+	return AddSpellEffectTargetById(abilityId, effType, target, attachPointName)
 
 public function effect.setColorByPlayer(player whichPlayer)
 	BlzSetSpecialEffectColorByPlayer(this, whichPlayer)
@@ -77,6 +124,11 @@ public function effect.setZ(real z)
 public function effect.setPositionLoc(location loc)
 	BlzSetSpecialEffectPositionLoc(this, loc)
 
+/** Returns the data defined in the ability's field  "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function getAbilityEffect(int abilityId, effecttype effType, int index) returns string
+	return GetAbilityEffectById(abilityId, effType, index)
+
 public function effect.getLocalX() returns real
 	return BlzGetLocalSpecialEffectX(this)
 
@@ -85,7 +137,7 @@ public function effect.getLocalY() returns real
 
 public function effect.getLocalZ() returns real
 	return BlzGetLocalSpecialEffectZ(this)
-	
+
 public function effect.setPos(vec3 pos)
 	BlzSetSpecialEffectPosition(this, pos.x, pos.y, pos.z)
 
@@ -94,7 +146,7 @@ public function effect.setPos(vec2 pos)
 
 public function effect.getPos3() returns vec3
 	return vec3(BlzGetLocalSpecialEffectX(this), BlzGetLocalSpecialEffectY(this), BlzGetLocalSpecialEffectZ(this))
-	
+
 public function effect.getPos() returns vec2
 	return vec2(BlzGetLocalSpecialEffectX(this), BlzGetLocalSpecialEffectY(this))
 
@@ -105,7 +157,7 @@ public function effect.setColor(colorA color)
 	BlzSetSpecialEffectColor(this, color.red, color.green, color.blue)
 	BlzSetSpecialEffectAlpha(this, color.alpha)
 
-/** 
+/**
 Change the orientation of the special effect.
 yaw  : x-axis
 pitch: y-axis
@@ -126,17 +178,38 @@ Warning: As of 1.29.2, setPitch has issues for values between 1.57-4.7 radians o
 */
 public function effect.setPitch(angle pitch)
 	BlzSetSpecialEffectPitch(this, pitch.radians())
-	
+
 /**
 Change the angle of the special effect around z-axis.
 */
 public function effect.setRoll(angle roll)
 	BlzSetSpecialEffectRoll(this, roll.radians())
 
+/** Plays an animation such as birth/death/stand/etc. defined in constants ANIM_TYPE_BIRTH/ANIM_TYPE_DEATH/ANIM_TYPE_STAND/etc. (full list in common.j). */
+public function effect.playAnimation(animtype whichAnim)
+	BlzPlaySpecialEffect(this, whichAnim)
+
+/** Plays an animation such as birth/death/stand/etc. defined in constants ANIM_TYPE_BIRTH/ANIM_TYPE_DEATH/ANIM_TYPE_STAND/etc. (full list in common.j). */
+public function effect.playAnimation(animtype whichAnim, real timeScale)
+	BlzPlaySpecialEffectWithTimeScale(this, whichAnim, timeScale)
+
+/** Returns the name of the animation type. */
+public function animtype.getName() returns string
+	return BlzGetAnimName(this)
+
+public function effect.addSubAnimation(subanimtype whichSubAnim)
+	BlzSpecialEffectAddSubAnimation(this, whichSubAnim)
+
+public function effect.clearSubAnimations()
+	BlzSpecialEffectClearSubAnimations(this)
+
+public function effect.removeSubAnimation(subanimtype whichSubAnim)
+	BlzSpecialEffectRemoveSubAnimation(this, whichSubAnim)
+
 @Test
 function testEffect()
 	let eff = addEffect("testPath", vec2(12,32))
-	
+
 	eff.getLocalX().assertEquals(12.)
 	eff.getLocalY().assertEquals(32.)
 

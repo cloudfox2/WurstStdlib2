@@ -3,6 +3,7 @@ import NoWurst
 import Integer
 import Real
 import Boolean
+import BitSet
 import public ObjEditingNatives
 import String
 import public UnitObjEditing
@@ -13,19 +14,34 @@ public enum AllowWhenFull
 	LIFE_ONLY
 	MANA_ONLY
 	ALWAYS
+	
+public enum StackingType
+	DAMAGE
+	MOVEMENT
+	ATTACK_RATE
+	KILL_UNIT
 
 public interface TooltipGenerator
 	function addProperty(string title, StringLevelClosure lc)
 	function applyToDef(AbilityDefinition def)
-		
+
+/** Makes an ability able to be cast by a dummy */
+public function AbilityDefinition.setDummyAbility() returns AbilityDefinition
+	this..setHeroAbility(false)
+	..setManaCost(1, 0)
+	..setCooldown(1, 0)
+	..setCastRange(1, 99999)
+	..setCheckDependencies(false)
+	return this
+
 public class AbilityDefinition
 	ObjectDefinition def
 	protected int lvls = 1
-	
+
 	TooltipGenerator tooltipGen = null
 	boolean listen = false
-	
-	protected int newId 
+
+	protected int newId
 	protected int baseId
 
 	function getNewId() returns int
@@ -41,7 +57,7 @@ public class AbilityDefinition
 		this.newId = newId
 		this.baseId = baseId
 		def = createObjectDefinition("w3a", newId, baseId)
-		
+
 	construct(int newId, int baseId, int lvls)
 		this.newId = newId
 		this.baseId = baseId
@@ -52,28 +68,34 @@ public class AbilityDefinition
 	function addTooltipProperty(string pName, StringLevelClosure lc)
 		if tooltipGen != null and listen
 			tooltipGen.addProperty(pName, lc)
-			
+
 	function addTooltipProperty(string pName, IntLevelClosure lc)
 		addTooltipProperty(pName, (int lvl) -> lc.run(lvl).toString())
-		
+
 	function addTooltipProperty(string pName, RealLevelClosure lc)
 		addTooltipProperty(pName, (int lvl) -> lc.run(lvl).toString())
-		
+
 	function addTooltipProperty(string pName, BooleanLevelClosure lc)
 		addTooltipProperty(pName, (int lvl) -> lc.run(lvl).toString())
-		
-	function registerTooltipGegenrator(TooltipGenerator tgen)
+
+	function registerTooltipGenerator(TooltipGenerator tgen)
 		tooltipGen = tgen
-		
+
 	function tooltipStartListen()
 		listen = true
-		
+
 	function tooltipStopListen()
+		tooltipStopListen(true)
+
+	function tooltipStopListen(boolean build)
 		listen = false
-		tooltipGen.applyToDef(this)
-		
+		if tooltipGen != null and build
+			tooltipGen.applyToDef(this)
+
 	function setName(string value)
 		def.setLvlDataString("anam", 0, 0, value)
+		StringLevelClosure clr = lvl -> value
+		addTooltipProperty("Name", clr)
 
 	function setEditorSuffix(string value)
 		def.setLvlDataString("ansf", 0, 0, value)
@@ -104,19 +126,19 @@ public class AbilityDefinition
 
 	function setButtonPositionResearchY(int value)
 		def.setLvlDataInt("arpy", 0, 0, value)
-		
+
 	function presetButtonPosNormal(int x, int y)
 		setButtonPositionNormalX(x)
 		setButtonPositionNormalY(y)
-		
+
 	function presetButtonPosTurnOff(int x, int y)
 		setButtonPositionTurnOffX(x)
 		setButtonPositionTurnOffY(y)
-		
+
 	function presetButtonPosResearch(int x, int y)
 		setButtonPositionResearchX(x)
 		setButtonPositionResearchY(y)
-		
+
 	function setIconNormal(string value)
 		def.setLvlDataString("aart", 0, 0, value)
 
@@ -125,7 +147,7 @@ public class AbilityDefinition
 
 	function setIconResearch(string value)
 		def.setLvlDataString("arar", 0, 0, value)
-		
+
 	function presetIcon(string name)
 		string s = name
 		if name.length() < 20 or not name.startsWith("ReplaceableTextures")
@@ -229,7 +251,7 @@ public class AbilityDefinition
 	function presetTooltipTurnOffExtended(StringLevelClosure lc)
 		def.setLevelsDataString("auu1", lvls, 0, lc)
 		addTooltipProperty("TooltipTurnOffExtended", lc)
-		
+
 	function setTooltipLearn(string value)
 		def.setLvlDataString("aret", 0, 0, value)
 
@@ -240,23 +262,26 @@ public class AbilityDefinition
 	function setTooltipLearnExtended(string value)
 		def.setLvlDataString("arut", 0, 0, value)
 
+	@Deprecated("Use setTooltipLearnExtended instead. Warcraft only has 1 learn tooltip and expects you to reference field data using <AHad,DataA1,.> e.g.")
 	function presetTooltipLearnExtended(StringLevelClosure lc)
 		def.setLevelsDataString("arut", lvls, 0, lc)
 		addTooltipProperty("TooltipLearnExtended", lc)
 
 	function setHotkeyLearn(string value)
 		def.setLvlDataString("arhk", 0, 0, value)
-		
+
 	function setHotkeyNormal(string value)
 		def.setLvlDataString("ahky", 0, 0, value)
 
 	function setHotkeyTurnOff(string value)
 		def.setLvlDataString("auhk", 0, 0, value)
-		
+
 	function presetHotkey(string value)
 		setHotkeyNormal(value)
 		setHotkeyLearn(value)
 		setHotkeyTurnOff(value)
+		StringLevelClosure clr = lvl -> value
+		addTooltipProperty("Hotkey", clr)
 
 	function setRequirements(string value)
 		def.setLvlDataString("areq", 0, 0, value)
@@ -291,6 +316,8 @@ public class AbilityDefinition
 	function setLevels(int value)
 		def.setLvlDataInt("alev", 0, 0, value)
 		lvls = value
+		StringLevelClosure clr = lvl -> value.toString()
+		addTooltipProperty("Levels", clr)
 
 	function setRequiredLevel(int value)
 		def.setLvlDataInt("arlv", 0, 0, value)
@@ -10121,6 +10148,8 @@ public class AbilityDefinitionWardenBlink extends AbilityDefinition
 
 
 public class AbilityDefinitionPoisonAttack extends AbilityDefinition
+	private bitset stackingTypesSet = bitset(1)
+
 	construct(int newAbilityId)
 		super(newAbilityId, AbilityIds.poisonSting)
 
@@ -10131,12 +10160,25 @@ public class AbilityDefinitionPoisonAttack extends AbilityDefinition
 		def.setLevelsDataUnreal("Poi2", lvls, 2, lc)
 		addTooltipProperty("AttackSpeedFactor", lc)
 
-	function setStackingType(int level, string value)
-		def.setLvlDataString("Poi4", level, 4, value)
+	function setStackingType(int level, int value)
+		def.setLvlDataInt("Poi4", level, 4, value)
 
-	function presetStackingType(StringLevelClosure lc)
-		def.setLevelsDataString("Poi4", lvls, 4, lc)
+	function presetStackingTypes(IntLevelClosure lc)
+		def.setLevelsDataInt("Poi4", lvls, 4, lc)
 		addTooltipProperty("StackingType", lc)
+		
+	function presetStackingType(StackingType stackingType, boolean flag)
+		let pow = stackingType castTo int
+		if stackingTypesSet.contains(pow)
+			if not flag
+				stackingTypesSet = stackingTypesSet.remove(pow)
+		else if flag
+			stackingTypesSet = stackingTypesSet.add(pow)
+
+		presetStackingTypes(lvl -> stackingTypesSet.val)
+		
+	function hasStackingType(StackingType stackingType) returns boolean
+		return stackingTypesSet.contains(stackingType castTo int)
 
 	function setDamageperSecond(int level, real value)
 		def.setLvlDataUnreal("Poi1", level, 1, value)

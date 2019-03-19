@@ -22,7 +22,7 @@ public function texttag.center(vec3 pos, string message, real size) returns text
 	while str.contains("|cff")
 		let idx = str.indexOf("|cff")
 		str = str.substring(0, idx) + str.substring(idx + 10, str.length())
-	this..setPos(pos - vec2(str.getWidth() / 1000. * bezier_3(3.0, 8.0, 11.5, size/25)  * 6.5, 0))
+	this..setPos(pos - vec2(str.getWidth() / 1000. * bezier3(3.0, 8.0, 11.5, size / 25)  * 6.5, 0))
 	..setText(message, size)
 	return this
 
@@ -43,7 +43,9 @@ public function string.getWidth() returns int
 	return width
 
 public function char(string s) returns char
-	if "\\" == s
+	if s == "/"
+		return char('/')
+	else if "\\" == s
 		return char('\')
 	var a = s2c[s.getHash() div 0x1F0748 + 0x3EA]
 	if s != c2s[a]
