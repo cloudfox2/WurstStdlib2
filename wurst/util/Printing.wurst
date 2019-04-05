@@ -3,6 +3,7 @@ import NoWurst
 import Player
 import String
 import GameTimer
+import Annotations
 
 @configurable public var DEBUG_LEVEL = Loglevel.INFO
 @configurable public var DEBUG_MSG_DURATION = 45.
@@ -26,7 +27,6 @@ public enum Loglevel
 			return "|cff1a7ce4警告"
 		case ERROR
 			return "|cffcd5c5c错误"
-	return "?"
 
 // Wrapper for nice log syntax
 public class Log
