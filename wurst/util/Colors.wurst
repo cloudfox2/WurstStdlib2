@@ -11,17 +11,17 @@ public constant COLOR_WHITE = colorA(255,255,255,255)
 public constant COLOR_BLACK = colorA(0,0,0,0)
 public constant COLOR_GOLD  = colorA(255, 204, 0, 255)
 
-constant DEFAULT_COLOR_NAME = "black"
+public constant DEFAULT_COLOR_NAME = "black"
 
-constant MAX_PLAYER_COLORS = 23
+public constant MAX_PLAYER_COLORS = 23
 /** Player color array. Access through playercolor.toColor() */
-constant PLAYER_COLORS = [
+public constant PLAYER_COLORS = [
 	color(255,2,2), color(0,65,255), color(27,229,184), color(83,0,128),
 	color(255,252,0), color(254,137,13), color(31,191,0), color(228,90,175),
 	color(148,149,150), color(125,190,241),	color(15,97,69), color(77,41,3),
 	color(155,0,0), color(0, 0, 195), color(0, 234, 255), color(190, 0, 254),
 	color(235, 205, 135), color(248, 164, 139), color(191, 255, 128), color(220, 185, 235),
-	color(40, 40, 40), color(235, 240, 255), color(0, 120, 30), color(164, 11, 51)
+	color(40, 40, 40), color(235, 240, 255), color(0, 120, 30), color(164, 111, 51)
 ]
 
 @deprecated("use playercolor.toColor()") // Please delete this monster at a later date
@@ -35,7 +35,7 @@ public constant playercolors = [
 ]
 
 /** Player color names array. Access through playercolor.getName() */
-constant PLAYER_COLOR_NAMES = [
+public constant PLAYER_COLOR_NAMES = [
 	"red", "blue", "teal", "purple",
 	"yellow", "orange", "green", "pink",
 	"gray", "light blue", "dark green", "brown",
@@ -222,16 +222,16 @@ init
 
 @Test public function testColorNames()
 	color(255, 2, 2).getName().assertEquals("red")
-	color(164, 11, 51).getName().assertEquals("peanut")
+	color(164, 111, 51).getName().assertEquals("peanut")
 	assertTrue("red".toColor() == color(255, 2, 2))
-	assertTrue("peanut".toColor() == color(164, 11, 51))
+	assertTrue("peanut".toColor() == color(164, 111, 51))
 	assertTrue("red".toPlayerColor() == PLAYER_COLOR_RED)
 	assertTrue("peanut".toPlayerColor() == PLAYER_COLOR_PEANUT)
 
 @Test public function testPlayerColorConversion()
 	assertTrue(PLAYER_COLOR_BLUE.toColor() == color(0,65,255))
 	assertTrue(PLAYER_COLOR_RED.toColor() == color(255, 2, 2))
-	assertTrue(PLAYER_COLOR_PEANUT.toColor() ==  color(164, 11, 51))
+	assertTrue(PLAYER_COLOR_PEANUT.toColor() ==  color(164, 111, 51))
 	PLAYER_COLOR_RED.getName().assertEquals("red")
 	PLAYER_COLOR_COAL.getName().assertEquals("coal")
 

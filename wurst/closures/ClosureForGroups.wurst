@@ -93,9 +93,26 @@ public function forUnitsInRectCounted(rect r, int count, ForGroupCallback c)
 
 /** Executes the given closure for every unit in range of the given position */
 public function forUnitsInRange(vec2 pos, real radius, ForGroupCallback c)
-	pushCallback(c)
-	GroupEnumUnitsInRange(DUMMY_GROUP, pos.x, pos.y, radius, filter)
-	popCallback()
+	forUnitsInRange(pos, radius, false, c)
+
+@deprecated("Use forUnitsInRange(pos, radius, collisionSizeFiltering, c) instead")
+public function forUnitsInRange(vec2 pos, real radius, ForGroupCallback c, bool collisionSizeFiltering)
+	forUnitsInRange(pos, radius, collisionSizeFiltering, c)
+
+/** Executes the given closure for every unit in range of the given position
+	With collisionSizeFiltering true it will take the units' collision into account. */
+public function forUnitsInRange(vec2 pos, real radius, bool collisionSizeFiltering, ForGroupCallback c)
+	if collisionSizeFiltering
+		pushCallback(c)
+		GroupEnumUnitsInRange(ENUM_GROUP, pos.x, pos.y, radius + MAX_COLLISION_SIZE, null)
+		for u from ENUM_GROUP
+			if IsUnitInRangeXY(u, pos.x, pos.y, radius)
+				c.callback(u)
+		popCallback()
+	else
+		pushCallback(c)
+		GroupEnumUnitsInRange(DUMMY_GROUP, pos.x, pos.y, radius, filter)
+		popCallback()
 
 /** Executes the given closure for every unit in range of the given position
 	Cancels itself after *count* iterations */
@@ -150,31 +167,46 @@ function currentCallbackD() returns ForGroupCallbackD
 	return tempCallbacksD[tempCallbacksDCount - 1]
 // ====Stack end====
 
+let enumRect = Rect(0,0,0,0)
+
+/** Executes the given closure for all destructables in a rect
+	that incompasses the circle with the range radius at the given position. */
+public function forDestructablesInRange(vec2 pos, real range, ForGroupCallbackD cb)
+	forDestructablesInRange(pos, range, null, cb)
+
+/** Executes the given closure for all destructables in a rect
+	that incompasses the circle with the range radius at the given position. */
+public function forDestructablesInRange(vec2 pos, real range, boolexpr filter, ForGroupCallbackD cb)
+	enumRect.resize(vec2(pos.x - range, pos.y - range), vec2(pos.x + range, pos.y + range))
+	forDestructablesInRect(enumRect, filter, cb)
+
 /** Executes the given closure for all destructables in the given rect */
 public function forDestructablesInRect(rect r, ForGroupCallbackD cb)
+	forDestructablesInRect(r, null, cb)
+
+/** Executes the given closure for all destructables in the given rect */
+public function forDestructablesInRect(rect r, boolexpr filter, ForGroupCallbackD cb)
 	pushCallbackD(cb)
-	EnumDestructablesInRect(r, null, () -> filterD())
+	EnumDestructablesInRect(r, filter, () -> filterD())
 	popCallbackD()
 
 // Nearest Destructable helpers
 destructable nearestD = null
-real nearestDDist = REAL_MAX
-vec2 gpos = ZERO2
+var nearestDDist = REAL_MAX
+var gpos = ZERO2
 
 /** Executes the given closure for the closes destructable in the given rect.
 	If there is no destructable in range, the closure will be run with "null" */
 public function forNearestDestructable(vec2 pos, real range, ForGroupCallbackD c)
-	pushCallbackD(c)
-	gpos = pos
-	nearestDDist = range.squared()
 	nearestD = null
-	let r = pos.withRadiusRect(range)
-	EnumDestructablesInRect(r, filterEnumDestructablesInCircleBJ) ->
-		let dist = gpos.distanceToSq(GetFilterDestructable().getPos())
+	nearestDDist = range
+	gpos = pos
+	enumRect.resize(vec2(pos.x - range, pos.y - range), vec2(pos.x + range, pos.y + range))
+	EnumDestructablesInRect(enumRect, null) ->
+		let dist = gpos.distanceTo(GetEnumDestructable().getPos())
 		if dist < nearestDDist
-			nearestD = GetFilterDestructable()
+			nearestD = GetEnumDestructable()
 			nearestDDist = dist
 
 	c.callback(nearestD)
-	popCallbackD()
-
+	destroy c

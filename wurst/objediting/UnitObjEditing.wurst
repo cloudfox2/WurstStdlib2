@@ -789,6 +789,9 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAcquisitionRange(real data)
 		def.setUnreal("uacq", data)
 
+	function setStructuresBuilt(string data)
+		def.setString("ubui", data)
+
 public class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 
 	construct(int newId, int origId)
@@ -815,8 +818,6 @@ public class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	function setFormationRank(int data)
 		def.setInt("ufor", data)
 
-	function setStructuresBuilt(string data)
-		def.setString("ubui", data)
 
 public class HeroDefinition extends UnitOrHeroDefinition
 
