@@ -561,11 +561,11 @@ public function LinkedList<string>.joinBy(string separator) returns string
 	let iter = this.iterator()
 
 	for str from iter
-		if iter.hasNext() or not first
-			joined += str + separator
-		else
-			joined += str
+		if first
+			joined = str
 			first = false
+		else
+			joined += separator + str
 
 	iter.close()
 	return joined

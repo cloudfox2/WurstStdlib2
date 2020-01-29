@@ -131,7 +131,7 @@ public class Knockback3
 	*/
 	static function add(unit u, vec2 target, real groundSpeed)
 		let t = (target - u.getPos()).length() / groundSpeed
-		let theta = u.getPos().angleTo(target)
+		let theta = u.getPos().angleTo(target).asAngleDegrees()
 		let velZ = gravity * t / 2. / ANIMATION_PERIOD
 		let vel = theta.toVec(groundSpeed).withZ(velZ)
 		let speed = vel.length()

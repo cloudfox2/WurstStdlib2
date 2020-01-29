@@ -144,7 +144,7 @@ function createDummy(vec2 pos, player owner, angle facing) returns unit
 	let u = createUnit(owner, DUMMY_UNIT_ID, pos, facing)
 	u..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)
 	..addAbility(ROOT_ENABLER)..removeAbility(ROOT_ENABLER)
-	..setXY(pos)..setFacing(facing)
+	..setXY(pos)..setFacing(facing.degrees())
 	return u
 
 
