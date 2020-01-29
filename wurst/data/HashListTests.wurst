@@ -15,9 +15,25 @@ function testSet()
 	list.set(1, 6)
 	list.get(1).assertEquals(6)
 
+	list.set(3, 42)
+	list.get(3).assertEquals(42)
+	// resize when index out of size
+	list.size().assertEquals(4)
+	// elem insert use null
+	list.hasAt(2).assertTrue()
+	list.get(2).assertEquals(0)
+	list.has(0).assertTrue()
+	list.count(0).assertEquals(1)
+
+	list.set(3, 42)
+	// not resize
+	list.size().assertEquals(4)
+	// un-inserted
+	list.count(0).assertEquals(1)
+
 @Test
 function testAddAll()
-	int array vals = [5, 3, 6, 4, 1, 9]
+	let vals = [5, 3, 6, 4, 1, 9]
 	let list = new HashList<int>
 		..add(5, 3, 6)
 
@@ -104,7 +120,7 @@ function testHas()
 @Test
 function testIterator()
 	let list = new HashList<int>
-	int array vals = [1, 3, 5]
+	let vals = [1, 3, 5]
 	var i = 0
 
 	list
@@ -170,4 +186,21 @@ function testForEachFibonacci()
 		xn = xn + xn_1
 		xn_1 = oldxn
 
+
+@Test
+function testIteratorRemove()
+	let list = new HashList<int>
+		..add(1, 1, 2, 3, 5, 8, 13, 21, 34)
+
+	let itr = list.iterator()
+	while itr.hasNext()
+		let next = itr.next()
+		if next > 2 and next < 25
+			itr.remove()
+
+	list.size().assertEquals(4)
+	list.get(0).assertEquals(1)
+	list.get(1).assertEquals(1)
+	list.get(2).assertEquals(2)
+	list.get(3).assertEquals(34)
 

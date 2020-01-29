@@ -90,7 +90,7 @@ public function getTime() returns string
 
 @configurable public function printLog(player showTo, Loglevel loglvl, string msg)
 	if (DEBUG_LEVEL castTo int) <= (loglvl castTo int)
-		let s = "{0} {1}| {2}".format(getTime(), loglvl.getTag(), msg)
+		let s = "{0} {1}| {2}|r".format(getTime(), loglvl.getTag(), msg)
 		DisplayTimedTextToPlayer(showTo, 0., 0., DEBUG_MSG_DURATION, s)
 
 /** Prints a simple message that is shown for the given duration */

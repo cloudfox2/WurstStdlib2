@@ -1,10 +1,11 @@
 package Table
 import NoWurst
+import MagicFunctions
 import public Hashtable
 
 /** Wraps a hashtable to provide single key tables */
 public class Table
-	private static constant ht = InitHashtable()
+	private static constant ht = compiletime(InitHashtable())
 
 	function hasInt(int parentKey) returns boolean
 		return ht.hasInt(this castTo int, parentKey)
