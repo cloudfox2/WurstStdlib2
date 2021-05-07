@@ -632,7 +632,8 @@ public function unit.isSelectable() returns boolean
 	return BlzIsUnitSelectable(this)
 
 public function unit.isInvulnerable() returns boolean
-	return BlzIsUnitInvulnerable(this)
+	//1.29的这个函数值反了
+	return not BlzIsUnitInvulnerable(this)
 
 public function unit.interruptAttack()
 	BlzUnitInterruptAttack(this)
@@ -655,9 +656,6 @@ public function unit.endAbilityCooldown(int abilCode)
 public function unit.getAbilityManaCost(int abilId, int level) returns int
 	return BlzGetUnitAbilityManaCost(this, abilId, level)
 
-public function unit.setAbilityManaCost(int abilId, int level, int manaCost)
-	BlzSetUnitAbilityManaCost(this, abilId, level, manaCost)
-	
 @deprecated("Use getPos instead.")
 public function unit.getLoc() returns location
 	return GetUnitLoc(this)
