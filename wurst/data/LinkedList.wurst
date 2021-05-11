@@ -47,6 +47,20 @@ public class LinkedList<T>
 		for elem in elems
 			add(elem)
 
+	/** Adds all elements from the other list to the end of this list and removes them from the provided list.
+
+	It does not add/remove elements internally, only the internal pointers of the list nodes are re-pointed.
+	The other list will be empty, but not destroyed. */
+	function splice(LinkedList<T> other)
+		dummy.prev.next = other.dummy.next
+		dummy.prev.next.prev = dummy.prev
+		dummy.prev = other.dummy.prev
+		dummy.prev.next = dummy
+		size += other.size
+		other.dummy.next = other.dummy
+		other.dummy.prev = other.dummy
+		other.size = 0
+
 	function reset(vararg T elems)
 		clear()
 		for elem in elems
@@ -151,6 +165,9 @@ public class LinkedList<T>
 	function isEmpty() returns boolean
 		return size == 0
 
+	function notEmpty() returns boolean
+		return size > 0
+
 	/** Returns a shallow copy of this map */
 	function copy() returns LinkedList<T>
 		let list = new LinkedList<T>
@@ -251,6 +268,8 @@ public class LinkedList<T>
 
 		for i = 0 to n-1
 			add(_a[i])
+		
+		itr.close()
 
 	/** Adds the given element directly behind the element at the given index */
 	function addAt(T elem, int index)

@@ -83,6 +83,7 @@ public function effect.setScale(real scale)
 public function effect.setPosition(real x, real y, real z)
 	BlzSetSpecialEffectPosition(this, x, y, z)
 
+/**需要带地形高度*/
 public function effect.setHeight(real height)
 	BlzSetSpecialEffectHeight(this, height)
 
