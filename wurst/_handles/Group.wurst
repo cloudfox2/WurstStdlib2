@@ -33,11 +33,11 @@ public function group.enumUnitsAll(boolexpr filter)
 public function group.clear()
 	GroupClear(this)
 
-public function group.addUnit(vararg unit units)
+public function group.add(vararg unit units)
 	for u in units
 		GroupAddUnit(this, u)
 
-public function group.removeUnit(vararg unit units)
+public function group.remove(vararg unit units)
 	for u in units
 		GroupRemoveUnit(this, u)
 
@@ -99,7 +99,7 @@ group iterGroup
 /** Creates a new iterator for this group. */
 public function group.iterator() returns group
 	iterGroup = CreateGroup()
-	ForGroup(this, () -> iterGroup.addUnit(GetEnumUnit()))
+	ForGroup(this, () -> iterGroup.add(GetEnumUnit()))
 	return iterGroup
 
 /** Returns whether the iterator has the next item */

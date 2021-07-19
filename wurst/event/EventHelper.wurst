@@ -68,4 +68,4 @@ public function eventid.isKeyboardEvent() returns boolean
 	
 public function eventid.isMouseEvent() returns boolean
 	let eventId = this.getHandleId()
-	return (eventId >= 305 and eventId <= 307)
+	return (eventId >= 269 and eventId <= 271)
