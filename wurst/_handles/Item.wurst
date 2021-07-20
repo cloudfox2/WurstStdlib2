@@ -97,7 +97,7 @@ public function item.getName() returns string
 	return GetItemName(this)
 
 public function item.setData(int dataType, string value) returns boolean
-	EXSetItemDataString(GetItemTypeId(this), dataType, value)
+	return EXSetItemDataString(GetItemTypeId(this), dataType, value)
 
 public function item.getData(int dataType) returns string
-	EXGetItemDataString(GetItemTypeId(this), dataType)
+	return EXGetItemDataString(GetItemTypeId(this), dataType)
