@@ -210,7 +210,7 @@ public class DamageEvent
             if abort 
                 break 
 
-        BlzSetEventDamage(dmg.amount)
+        EXSetEventDamage(dmg.amount)
 
         destroy dmg
         abort = false  

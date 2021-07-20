@@ -551,117 +551,15 @@ public function unit.getDefaultAcquireRange() returns real
 public function unit.getDefaultFlyHeight() returns real
 	return GetUnitDefaultFlyHeight(this)
 
-public function unit.getIntMaxHP() returns int
-	return BlzGetUnitMaxHP(this)
+public function unit.getCD(int abilCode) returns real
+	return EXGetAbilityState(EXGetUnitAbility(this, abilCode), ABILITY_STATE_COOLDOWN)
 
-public function unit.setMaxHP(int hp)
-	BlzSetUnitMaxHP(this, hp)
-
-/** Changes a unit's maximum hp, adjusting the
-	current hp to keep the same ratio.*/
-public function unit.setMaxHP(int hp, boolean keepRatio)
-	if keepRatio
-		let ratio = this.getHP()/this.getMaxHP()
-		BlzSetUnitMaxHP(this, hp)
-		this.setHP(ratio * hp)
-	else
-		BlzSetUnitMaxHP(this, hp)
-
-public function unit.getIntMaxMana() returns int
-	return BlzGetUnitMaxMana(this)
-
-public function unit.setMaxMana(int mana)
-	BlzSetUnitMaxMana(this, mana)
-
-/** Changes a unit's maximum mana, adjusting the
-	current mana to keep the same ratio.*/
-public function unit.setMaxMana(int mana, boolean keepRatio)
-	if keepRatio
-		let ratio = this.getMana()/this.getMaxMana()
-		BlzSetUnitMaxMana(this, mana)
-		this.setMana(ratio * mana)
-	else
-		BlzSetUnitMaxMana(this, mana)
-
-public function unit.setName(string name)
-	BlzSetUnitName(this, name)
-
-public function unit.setProperName(string name)
-	BlzSetHeroProperName(this, name)
-
-public function unit.getBaseDamage(int weaponIndex) returns int
-	return BlzGetUnitBaseDamage(this, weaponIndex)
-
-public function unit.setBaseDamage(int baseDamage, int weaponIndex)
-	BlzSetUnitBaseDamage(this, baseDamage, weaponIndex)
-
-public function unit.getDiceNumber(int weaponIndex) returns int
-	return BlzGetUnitDiceNumber(this, weaponIndex)
-
-public function unit.setDiceNumber(int diceNumber, int weaponIndex)
-	BlzSetUnitDiceNumber(this, diceNumber, weaponIndex)
-
-public function unit.getDiceSides(int weaponIndex) returns int
-	return BlzGetUnitDiceSides(this, weaponIndex)
-
-public function unit.setDiceSides(int diceSides, int weaponIndex)
-	BlzSetUnitDiceSides(this, diceSides, weaponIndex)
-
-public function unit.getAttackCooldown(int weaponIndex) returns real
-	return BlzGetUnitAttackCooldown(this, weaponIndex)
-
-public function unit.setAttackCooldown(real cooldown, int weaponIndex)
-	BlzSetUnitAttackCooldown(this, cooldown, weaponIndex)
-
-public function unit.getArmor() returns real
-	return BlzGetUnitArmor(this)
-
-public function unit.setArmor(real armorAmount)
-	BlzSetUnitArmor(this, armorAmount)
-
-public function unit.hideAbility(int abilId, boolean flag)
-	BlzUnitHideAbility(this, abilId, flag)
-
-public function unit.disableAbility(int abilId, boolean flag, boolean hideUI)
-	BlzUnitDisableAbility(this, abilId, flag, hideUI)
-
-public function unit.cancelTimedLife()
-	BlzUnitCancelTimedLife(this)
-
-public function unit.isSelectable() returns boolean
-	return BlzIsUnitSelectable(this)
-
-public function unit.isInvulnerable() returns boolean
-	//1.29的这个函数值反了
-	return not BlzIsUnitInvulnerable(this)
-
-public function unit.interruptAttack()
-	BlzUnitInterruptAttack(this)
-
-public function unit.getCollisionSize() returns real
-	return BlzGetUnitCollisionSize(this)
-
-public function unit.setAbilityCooldown(int abilId, int level, real cooldown)
-	BlzSetUnitAbilityCooldown(this, abilId, level, cooldown)
-
-public function unit.getAbilityCooldown(int abilId, int level) returns real
-	return BlzGetUnitAbilityCooldown(this, abilId, level)
-
-public function unit.getAbilityCooldownRemaining(int abilId) returns real
-	return BlzGetUnitAbilityCooldownRemaining(this, abilId)
-
-public function unit.endAbilityCooldown(int abilCode)
-	BlzEndUnitAbilityCooldown(this, abilCode)
-
-public function unit.getAbilityManaCost(int abilId, int level) returns int
-	return BlzGetUnitAbilityManaCost(this, abilId, level)
+public function unit.setCD(int abilCode, real cd)
+	EXSetAbilityState(EXGetUnitAbility(this, abilCode), ABILITY_STATE_COOLDOWN, cd)
 
 @deprecated("Use getPos instead.")
 public function unit.getLoc() returns location
 	return GetUnitLoc(this)
-
-public function unit.getLocalZ() returns real
-	return BlzGetLocalUnitZ(this)
 
 public function unit.isIllusion() returns bool
 	return IsUnitIllusion(this)

@@ -96,29 +96,8 @@ public function item.setUserData(int data)
 public function item.getName() returns string
 	return GetItemName(this)
 
-public function item.setName(string name)
-	BlzSetItemName(this, name)
+public function item.setData(int dataType, string value) returns boolean
+	EXSetItemDataString(GetItemTypeId(this), dataType, value)
 
-public function item.getDescription() returns string
-	return BlzGetItemDescription(this)
-
-public function item.setDescription(string description)
-	BlzSetItemDescription(this, description)
-
-public function item.getTooltip() returns string
-	return BlzGetItemTooltip(this)
-
-public function item.setTooltip(string tooltip)
-	BlzSetItemTooltip(this, tooltip)
-
-public function item.getExtendedTooltip() returns string
-	return BlzGetItemExtendedTooltip(this)
-
-public function item.setExtendedTooltip(string tooltip)
-	BlzSetItemExtendedTooltip(this, tooltip)
-
-public function item.getIconPath() returns string
-	return BlzGetItemIconPath(this)
-
-public function item.setIconPath(string path)
-	BlzSetItemIconPath(this, path)
+public function item.getData(int dataType) returns string
+	EXGetItemDataString(GetItemTypeId(this), dataType)
