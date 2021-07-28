@@ -22,6 +22,9 @@ constant SOUND_MIN_DIST = 600.
 constant SOUND_MAX_DIST = 8000.
 constant SOUND_DIST_CUT = 1500.
 
+//global volume
+public real VOLUME = 1.0
+
 public class SoundInstance
 	var pos = ZERO3
 	sound snd
@@ -54,7 +57,7 @@ public class SoundDefinition
 	private function getSound() returns SoundInstance
 		if soundStack.size() > 0
 			let shandle = soundStack.pop()
-			shandle.snd..setVolume(DEFAULT_SOUND_VOLUME)..setPitch(DEFAULT_SOUND_PITCH)..setChannel(SOUND_CHANNEL)
+			shandle.snd..setVolume((DEFAULT_SOUND_VOLUME * VOLUME).toInt())..setPitch(DEFAULT_SOUND_PITCH)..setChannel(SOUND_CHANNEL)
 			return shandle
 		else
 			// No free handle, create a new one
@@ -64,13 +67,13 @@ public class SoundDefinition
 
 			sdata.snd..setDuration(this.duration)
 			..setChannel(SOUND_CHANNEL)
-			..setVolume(DEFAULT_SOUND_VOLUME)
+			..setVolume((DEFAULT_SOUND_VOLUME * VOLUME).toInt())
 			..setPitch(DEFAULT_SOUND_PITCH)
 
 			if is3D
 				SetSoundDistances(sdata.snd, SOUND_MIN_DIST, SOUND_MAX_DIST)
 				SetSoundDistanceCutoff(sdata.snd, SOUND_DIST_CUT)
-				SetSoundConeAngles(sdata.snd, 0, 0, DEFAULT_SOUND_VOLUME)
+				SetSoundConeAngles(sdata.snd, 0, 0, (DEFAULT_SOUND_VOLUME * VOLUME).toInt())
 				SetSoundConeOrientation(sdata.snd, 0, 0, 0)
 
 			return sdata
