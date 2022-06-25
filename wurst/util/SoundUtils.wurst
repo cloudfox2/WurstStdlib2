@@ -83,7 +83,7 @@ public class SoundDefinition
 	function play() returns SoundInstance
 		return play(DEFAULT_SOUND_DURATION)
 
-	/** Plays this sound for all Players with the given duration.
+	/** Plays this sound for all Players with the given duration(millisecond).
 		The duration should be close to the length of the soundfile.
 		Use this to recycle soundhandles immeditely when they finish,
 		allowing for rapid succession of sounds.	*/
