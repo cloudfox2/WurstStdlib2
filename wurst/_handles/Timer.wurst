@@ -2,6 +2,7 @@ package Timer
 import NoWurst
 
 public function timer.destr()
+	PauseTimer(this)
 	DestroyTimer(this)
 
 public function timer.getElapsed() returns real
