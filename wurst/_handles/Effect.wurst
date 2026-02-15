@@ -80,12 +80,15 @@ public function effect.getSize() returns real
 public function effect.setAnimSpeed(real speed)
 	EXSetEffectSpeed(this, speed)
 
+//加法
 public function effect.setRotateX(real angle)
 	EXEffectMatRotateX(this, angle)
 
+//加法
 public function effect.setRotateY(real angle)
 	EXEffectMatRotateY(this, angle)
 
+//加法
 public function effect.setRotateZ(real angle)
 	EXEffectMatRotateZ(this, angle)
 

@@ -26,10 +26,10 @@ public enum ArmorType
 
 public enum AttackType
 	Unknown
-	Normal
+	Normal	//Melee
 	Pierce
 	Siege
-	Spells
+	Spells	//Normal
 	Chaos
 	Magic
 	Hero
@@ -702,9 +702,11 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1DamageUpgradeAmount(int data)
 		def.setInt("udu1", data)
 
+	//穿透伤害范围
 	function setAttack1DamageSpillRadius(real data)
 		def.setUnreal("usr1", data)
 
+	//穿透伤害距离
 	function setAttack1DamageSpillDistance(real data)
 		def.setUnreal("usd1", data)
 
@@ -714,12 +716,15 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1DamageNumberofDice(int data)
 		def.setInt("ua1d", data)
 
+	//伤害衰减参数
 	function setAttack1DamageLossFactor(real data)
 		def.setUnreal("udl1", data)
 
+	//小伤害参数
 	function setAttack1DamageFactorSmall(real data)
 		def.setUnreal("uqd1", data)
 
+	//中伤害参数
 	function setAttack1DamageFactorMedium(real data)
 		def.setUnreal("uhd1", data)
 
@@ -732,15 +737,19 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1AttackType(AttackType data)
 		def.setString("ua1t", data.toObjectString())
 
+	//最大目标数（默认1，仅对弹射攻击有效
 	function setAttack1AreaofEffectTargets(string data)
 		def.setString("ua1p", data)
 
+	//小伤害范围
 	function setAttack1AreaofEffectSmallDamage(int data)
 		def.setInt("ua1q", data)
 
+	//中伤害范围
 	function setAttack1AreaofEffectMediumDamage(int data)
 		def.setInt("ua1h", data)
 
+	//全伤害范围
 	function setAttack1AreaofEffectFullDamage(int data)
 		def.setInt("ua1f", data)
 

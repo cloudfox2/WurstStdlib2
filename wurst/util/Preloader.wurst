@@ -17,16 +17,16 @@ import Unit
 /** Whether to finish preloading automatically */
 @configurable constant autoFinish = true
 var dumg = CreateGroup()
-unit dum
+public unit PRELOAD_DUM
 
 /** Preloads the given abilitytype */
 public function preloadAbility(vararg int abilIds) returns boolean
 	var result = true
 	for abilId in abilIds
-		dum.addAbility(abilId)
-		if dum == null
+		PRELOAD_DUM.addAbility(abilId)
+		if PRELOAD_DUM == null
 			error("Do not load abilities after map init when autoFinish = true")
-		else if not dum.hasAbility(abilId)
+		else if not PRELOAD_DUM.hasAbility(abilId)
 			Log.trace("PreloadAbility: Ability " + abilId.toRawCode() + " does not exist.")
 			result = false
 	return result
@@ -44,15 +44,15 @@ public function preloadUnit(vararg int unitIds) returns boolean
 
 /** If autoFinish is false you need to call this function manually */
 public function finishPreload()
-	dum.remove()
+	PRELOAD_DUM.remove()
 	dumg.forEachFrom((unit u) -> u.remove())
 	dumg.destr()
 	dumg = null
 
 init
-	dum = createUnit(DUMMY_PLAYER, UnitIds.shade, playableMin, angle(0))
-	dum.setInvulnerable(true)
-	if dum == null
+	PRELOAD_DUM = createUnit(DUMMY_PLAYER, UnitIds.shade, playableMin, angle(0))
+	PRELOAD_DUM.setInvulnerable(true)
+	if PRELOAD_DUM == null
 		error("DUMMY_UNITID not added correctly to the map.")
 	if autoFinish
 		nullTimer(() -> finishPreload())

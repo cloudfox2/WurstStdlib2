@@ -367,9 +367,9 @@ function getEventDamageDesignation() returns string
 /* INIT */
 
 init
-    EventListener.add(EVENT_UNIT_DAMAGED, () -> DamageEvent.onDamage())
-    if DETECT_NATIVE_ABILITIES
-        onEnter(() -> getEnterLeaveUnit()..addAbility(DETECT_NATIVE_ABILITIES_ID)..makeAbilityPermanent(DETECT_NATIVE_ABILITIES_ID, true))
+    // EventListener.add(EVENT_UNIT_DAMAGED, () -> DamageEvent.onDamage())
+    // if DETECT_NATIVE_ABILITIES
+    //     onEnter(() -> getEnterLeaveUnit()..addAbility(DETECT_NATIVE_ABILITIES_ID)..makeAbilityPermanent(DETECT_NATIVE_ABILITIES_ID, true))
 
 
 /* ASSETS */

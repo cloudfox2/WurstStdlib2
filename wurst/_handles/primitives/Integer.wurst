@@ -1,7 +1,6 @@
 package Integer
 import NoWurst
 import Real
-
 public constant INT_MAX = 2147483647
 public constant INT_MIN = -2147483648
 
