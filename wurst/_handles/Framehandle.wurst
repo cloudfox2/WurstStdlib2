@@ -1,0 +1,806 @@
+package Framehandle
+import NoWurst
+import Player
+import Vectors
+import Colors
+import ErrorHandling
+import Annotations
+import public DzApi
+
+/*
+	Custom frames can be defined in a frame definition file (*.fdf).
+	These files need to be listed inside of a toc file and loaded using loadTOCFile() to be used.
+	The toc file *must* always have an empty line at the end.
+	Default .fdf files can be found in:
+		war3.w3mod:ui\framedef\ui\
+		war3.w3mod:ui\framedef\glue\
+
+	Positioning:
+		All frames are placed on the screen in a 4:3 box.
+		(0, 0) is BOTTOM-LEFT corner of the box and (0.8, 0.6) is TOP-RIGHT corner of the box.
+		Currently, there are exceptions. DZ_ORIGIN_FRAME_WORLD_FRAME and DZ_ORIGIN_FRAME_PORTRAIT are placed on the whole screen so they can go beyond the box' borders. This behaviour affects the frames' size as well. Keep it in mind, if the screen ratio is not 4:3, placing and sizing of DZ_ORIGIN_FRAME_WORLD_FRAME and DZ_ORIGIN_FRAME_PORTRAIT will not match other frames.
+
+	Synch notes:
+		A frame uses the default handlepool - it must not be created locally.
+		ClosureFrames registers Dz frame callbacks as synced events. A player's input fires the listener for all players.
+		However, the frame's states are not synced; i.e you can change the text, value, position, visibility or state locally.
+
+		*IMPORTANT:* Always get the int outside of the local scope
+
+	Origin-frame id notes:
+		DZ_ORIGIN_FRAME_GAME_UI 				    --> Main parent frame
+		DZ_ORIGIN_FRAME_WORLD_FRAME 			    --> The game is displayed on this frame.
+		DZ_ORIGIN_FRAME_HERO_BAR 				    --> Parent of all HERO_BUTTONS, HeroButons share the same visiblity.
+		DZ_ORIGIN_FRAME_HERO_BUTTON [0 to 6]       --> The buttons of own/allied heroes on the left of the screen
+			DZ_ORIGIN_FRAME_HERO_HP_BAR,
+			DZ_ORIGIN_FRAME_HERO_MANA_BAR
+			DZ_ORIGIN_FRAME_HERO_BUTTON_INDICATOR  --> The glowing when a hero has skillpoints; They reappear when a hero gains a new skillpoint even if all originframes are hidden.
+
+		DZ_ORIGIN_FRAME_ITEM_BUTTON [0 to 5]       --> Items in the inventory. Reappear on unit's selection even if all originframes are hidden (when the parent's parent is shown)
+		DZ_ORIGIN_FRAME_COMMAND_BUTTON [0 to 11]   --> Buttons of the the command board. 0 is the (0,0) button, 11 is the (3,2) one. Reappear on unit's selection even if all originframes are hidden
+		DZ_ORIGIN_FRAME_SYSTEM_BUTTON [0 to 3]     --> Menu, allies, log, quest.
+		DZ_ORIGIN_FRAME_PORTRAIT 	                --> Portrait of the selected unit (this frame is not on the 4:3 screen but on the whole screen)
+		DZ_ORIGIN_FRAME_MINIMAP
+		DZ_ORIGIN_FRAME_MINIMAP_BUTTON [0 to 4]    --> 0 is the button at top, 4 the one at the bottom.
+		DZ_ORIGIN_FRAME_TOOLTIP
+		DZ_ORIGIN_FRAME_UBERTOOLTIP                --> Frame of the game's tooltips
+		DZ_ORIGIN_FRAME_CHAT_MSG                   --> Frame of the game's messages (e.g. from DisplayTextToPlayer())
+		DZ_ORIGIN_FRAME_UNIT_MSG                   --> Frame of the UpKeep change warning message, below the clock
+*/
+
+public constant GAME_UI    = DzGetGameUI()
+// DzAPI 1.27 exposes no distinct world-frame getter. Keep this alias for source compatibility;
+// createSimpleFrame resolves the SimpleFrame-family ConsoleUI parent lazily instead.
+public constant WORLD_UI   = GAME_UI
+public constant CONSOLE_UI = DzFrameFindByName("ConsoleUIBackdrop", 0)
+
+constant frameState = InitHashtable()
+constant ENABLE_NATIVE_UNSAFE_KEY = 2
+int cachedSimpleUiParent = 0
+
+function rememberEnableNativeSupport(int frame, bool supported)
+	if frame == 0
+		return
+	if supported
+		RemoveSavedBoolean(frameState, frame, ENABLE_NATIVE_UNSAFE_KEY)
+	else
+		SaveBoolean(frameState, frame, ENABLE_NATIVE_UNSAFE_KEY, true)
+
+function frameTypeSupportsEnable(string frameType) returns bool
+	return frameType == "BUTTON" or frameType == "GLUEBUTTON" or frameType == "GLUETEXTBUTTON" or
+		frameType == "TEXTBUTTON" or frameType == "SIMPLEBUTTON" or
+		frameType == "CHECKBOX" or frameType == "GLUECHECKBOX" or frameType == "SIMPLECHECKBOX" or
+		frameType == "EDITBOX" or frameType == "GLUEEDITBOX" or frameType == "SLIDER" or
+		frameType == "POPUPMENU" or frameType == "GLUEPOPUPMENU" or frameType == "TEXT"
+
+function knownTemplateSupportsEnable(string name) returns bool
+	return name == "TableUiEditBox" or name == "TableUiSlider" or name == "GeneralButton" or
+		name == "button" or name == "QuestCheckBox2" or name == "TableUiOverlayButton" or
+		name == "TableUiDisabledOverlay" or name == "TableUiModalBarrier" or
+		name == "h1" or name == "h2" or name == "h3" or name == "h4" or name == "h5" or
+		name == "p" or name == "p2" or name == "p3"
+
+function knownTemplateRejectsEnable(string name) returns bool
+	return name == "TableUiMultiboardBackdrop" or name == "BoxedTextBackgroundTemplate" or
+		name == "HeroPickMenuBackdrop" or name == "TableUiPanelBackdrop" or
+		name == "TableUiCardBackdrop" or name == "TableUiTooltipBackdrop" or
+		name == "TableUiSelectMenuBackdrop" or name == "BoxedText" or
+		name == "TableUiSelectedHighlight" or name == "TableUiModalBarrierBackdrop" or
+		name == "TableUiSimpleBar" or name == "TableUiSimpleTexture"
+
+function rememberTemplateEnableNativeSupport(int frame, string name)
+	if knownTemplateSupportsEnable(name)
+		rememberEnableNativeSupport(frame, true)
+	else if knownTemplateRejectsEnable(name)
+		rememberEnableNativeSupport(frame, false)
+
+/** Returns the SimpleFrame-family root used by DzCreateSimpleFrame on the 1.27 Dz API.
+	Resolve it after game start: mixing a normal Frame parent with a SimpleFrame can crash. */
+public function getSimpleUiParent() returns int
+	if cachedSimpleUiParent == 0
+		cachedSimpleUiParent = DzSimpleFrameFindByName("ConsoleUI", 0)
+	if cachedSimpleUiParent == 0
+		return GAME_UI
+	return cachedSimpleUiParent
+
+function setDzFrameVisible(int frame, boolean visible)
+	// DzFrameShow is the generic 1.27 wrapper used for both Frame and SimpleFrame handles.
+	DzFrameShow(frame, visible)
+
+function isDzFrameVisible(int frame) returns boolean
+	return frame != 0 and DzFrameIsVisible(frame)
+
+public constant SCREEN_CENTER             = vec2(0.4, 0.3)
+public constant SCREEN_TOPRIGHT           = vec2(0.8, 0.6)
+public constant SCREEN_TOPLEFT            = vec2(0.0, 0.6)
+public constant SCREEN_BOTTOMRIGHT        = vec2(0.8, 0.0)
+public constant SCREEN_BOTTOMLEFT         = vec2(0.0, 0.0)
+public constant SCREEN_RIGHT              = vec2(0.8, 0.3)
+public constant SCREEN_LEFT               = vec2(0.0, 0.3)
+public constant SCREEN_TOP                = vec2(0.4, 0.6)
+public constant SCREEN_BOTTOM             = vec2(0.4, 0.0)
+
+// These defines represent the whole 16:9 screen size. Only Frames of type 'SIMPLE' can be moved here.
+public constant WHOLE_SCREEN_TOPRIGHT     = vec2( 0.95, 0.6)
+public constant WHOLE_SCREEN_TOPLEFT      = vec2(-0.15, 0.6)
+public constant WHOLE_SCREEN_BOTTOMRIGHT  = vec2( 0.95, 0.0)
+public constant WHOLE_SCREEN_BOTTOMLEFT   = vec2(-0.15, 0.0)
+public constant WHOLE_SCREEN_RIGHT        = vec2( 0.95, 0.3)
+public constant WHOLE_SCREEN_LEFT         = vec2(-0.15, 0.3)
+public constant WHOLE_SCREEN_TOP          = SCREEN_TOP
+public constant WHOLE_SCREEN_BOTTOM       = SCREEN_BOTTOM
+
+constant BLZ_FRAMENAME_MAXLENGTH    = 560
+
+/** Returns whether the frame name length is valid or not */
+function verifyFrameNameLength(string name) returns boolean
+	if name.length() > BLZ_FRAMENAME_MAXLENGTH
+		error("Trying to address frame with exceeding maximum frame name length (" + BLZ_FRAMENAME_MAXLENGTH + ") for: " + name)
+		return false
+	return true
+
+/** Returns the origin frame of the given type.
+	Do not first-call frame handle getters inside GetLocalPlayer(); acquire/cache handles for all players first.
+	For custom UI setup, prefer elapsed game time 0.00 or later. */
+public function getOriginFrame(int frameType) returns int
+	return getOriginFrame(frameType, 0)
+
+/** Returns the origin frame of the given type and index.
+	Do not first-call frame handle getters inside GetLocalPlayer(); acquire/cache handles for all players first.
+	For custom UI setup, prefer elapsed game time 0.00 or later. */
+public function getOriginFrame(int frameType, integer index) returns int
+	if frameType == DZ_ORIGIN_FRAME_GAME_UI
+		return GAME_UI
+	else if frameType == DZ_ORIGIN_FRAME_COMMAND_BUTTON
+		return DzFrameGetCommandBarButton(index div 4, index mod 4)
+	else if frameType == DZ_ORIGIN_FRAME_HERO_BAR
+		return DzFrameGetParent(DzFrameGetHeroBarButton(0))
+	else if frameType == DZ_ORIGIN_FRAME_HERO_BUTTON
+		return DzFrameGetHeroBarButton(index)
+	else if frameType == DZ_ORIGIN_FRAME_HERO_HP_BAR
+		return DzFrameGetHeroHPBar(index)
+	else if frameType == DZ_ORIGIN_FRAME_HERO_MANA_BAR
+		return DzFrameGetHeroManaBar(index)
+	else if frameType == DZ_ORIGIN_FRAME_ITEM_BUTTON
+		return DzFrameGetItemBarButton(index)
+	else if frameType == DZ_ORIGIN_FRAME_MINIMAP
+		return DzFrameGetMinimap()
+	else if frameType == DZ_ORIGIN_FRAME_MINIMAP_BUTTON
+		return DzFrameGetMinimapButton(index)
+	else if frameType == DZ_ORIGIN_FRAME_SYSTEM_BUTTON
+		return DzFrameGetUpperButtonBarButton(index)
+	else if frameType == DZ_ORIGIN_FRAME_TOOLTIP or frameType == DZ_ORIGIN_FRAME_UBERTOOLTIP
+		return DzFrameGetTooltip()
+	else if frameType == DZ_ORIGIN_FRAME_CHAT_MSG
+		return DzFrameGetChatMessage()
+	else if frameType == DZ_ORIGIN_FRAME_UNIT_MSG
+		return DzFrameGetUnitMessage()
+	else if frameType == DZ_ORIGIN_FRAME_TOP_MSG
+		return DzFrameGetTopMessage()
+	else if frameType == DZ_ORIGIN_FRAME_PORTRAIT
+		return DzFrameGetPortrait()
+	else if frameType == DZ_ORIGIN_FRAME_WORLD_FRAME or frameType == DZ_ORIGIN_FRAME_SIMPLE_UI_PARENT
+		return WORLD_UI
+	// Hero-button indicators and newer origin frames have no 1.27 Dz equivalent.
+	return 0
+
+/**	Returns the int of the given name and createContext index (children inherit the createContext value of their parent).
+	Do not first-call frame handle getters inside GetLocalPlayer(); acquire/cache handles for all players first.
+	For custom UI setup, prefer elapsed game time 0.00 or later. */
+public function getFrame(string name, integer createContext) returns int
+	verifyFrameNameLength(name)
+	var frame = DzFrameFindByName(name, createContext)
+	if frame == 0
+		frame = DzSimpleFrameFindByName(name, createContext)
+	if frame == 0
+		frame = DzSimpleFontStringFindByName(name, createContext)
+	if frame == 0
+		frame = DzSimpleTextureFindByName(name, createContext)
+	return frame
+
+/**	Returns the int of the given name.
+	Do not first-call frame handle getters inside GetLocalPlayer(); acquire/cache handles for all players first.
+	For custom UI setup, prefer elapsed game time 0.00 or later. */
+public function getFrame(string name) returns int
+	verifyFrameNameLength(name)
+	return getFrame(name, 0)
+
+/** Creates a non simple frame of the given name (the name of the frame which must be defined in the imported fdf files).
+	Do not create custom frames at map init; use elapsed game time 0.00 or later.
+	Do not create frame handles only inside GetLocalPlayer(); create/cache them for all players first. */
+public function createFrame(string name) returns int
+	verifyFrameNameLength(name)
+	return createFrame(name, GAME_UI, 0, 0)
+
+/** Creates a non simple frame:
+		name: the name of the frame which must be defined in the imported fdf files.
+		owner: the parent of the frame
+		priority: unknown
+		createContext: the unique id assigned to the frame and its children (useful for creating multiple frames of the same name)
+	Do not create custom frames at map init; use elapsed game time 0.00 or later.
+	Do not create frame handles only inside GetLocalPlayer(); create/cache them for all players first. */
+public function createFrame(string name, int owner, integer priority, integer createContext) returns int
+	verifyFrameNameLength(name)
+	let frame = DzCreateFrame(name, owner, createContext)
+	rememberTemplateEnableNativeSupport(frame, name)
+	DzFrameSetPriority(frame, priority)
+	return frame
+
+/** Creates a simple frame of the given name (the name of the frame which must be defined in the imported fdf files).
+	Do not create custom frames at map init; use elapsed game time 0.00 or later.
+	Do not create frame handles only inside GetLocalPlayer(); create/cache them for all players first. */
+public function createSimpleFrame(string name) returns int
+	verifyFrameNameLength(name)
+	return createSimpleFrame(name, getSimpleUiParent(), 0)
+
+/** Creates a simple frame:
+		name: the name of the frame which must be defined in the imported fdf files.
+		owner: the parent of the frame
+		createContext: the unique id assigned to the frame and its children (useful for creating multiple frames of the same name)
+	Do not create custom frames at map init; use elapsed game time 0.00 or later.
+	Do not create frame handles only inside GetLocalPlayer(); create/cache them for all players first. */
+public function createSimpleFrame(string name, int owner, integer createContext) returns int
+	verifyFrameNameLength(name)
+	var actualOwner = owner
+	// WORLD_UI is a compatibility alias for GAME_UI. For a top-level SimpleFrame, translate that
+	// ordinary-frame root to ConsoleUI, which belongs to the SimpleFrame family on the Dz runtime.
+	if actualOwner == GAME_UI
+		actualOwner = getSimpleUiParent()
+	let frame = DzCreateSimpleFrame(name, actualOwner, createContext)
+	rememberTemplateEnableNativeSupport(frame, name)
+	return frame
+
+/** Creates a frame by type:
+		typeName: the name of the type (e.g. "SIMPLEFRAME", "MENU", "BUTTON")
+		name: the name of the created frame
+		owner: the parent of the frame
+		inherits: the name of the frame frome which the created frame will be inhereting (which must be defined in the imported .fdf files)
+		createContext: the unique id assigned to the frame and its children (useful for creating multiple frames of the same name)
+	Do not create custom frames at map init; use elapsed game time 0.00 or later.
+	Do not create frame handles only inside GetLocalPlayer(); create/cache them for all players first. */
+public function createFrame(string typeName, string name, int owner, string inherits, integer createContext) returns int
+	verifyFrameNameLength(name)
+	let frame = DzCreateFrameByTagName(typeName, name, owner, inherits, createContext)
+	rememberEnableNativeSupport(frame, frameTypeSupportsEnable(typeName))
+	return frame
+
+/** Creates a BACKDROP frame by type without requiring custom FDF.
+	Use this for simple images, borders and background panels. */
+public function createBackdrop(string name, int owner, integer createContext) returns int
+	return createFrame("BACKDROP", name, owner, "", createContext)
+
+/** Creates a TEXT frame by type without requiring custom FDF. */
+public function createTextFrame(string name, int owner, integer createContext) returns int
+	return createFrame("TEXT", name, owner, "", createContext)
+
+/** Creates a disabled TEXT tooltip frame by type without requiring custom FDF.
+	After positioning the tooltip, call owner.setTooltip(tooltip). */
+public function createTextTooltip(string name, int owner, string text, integer createContext) returns int
+	let tooltip = createTextFrame(name, owner, createContext)
+	tooltip.setText(text)
+	tooltip.disable()
+	return tooltip
+
+/** Creates a GLUETEXTBUTTON by type without requiring custom FDF.
+	inheritTemplate is commonly "ScriptDialogButton" for Blizzard's default dialog button style. */
+public function createGlueTextButton(string name, int owner, string inheritTemplate, integer createContext) returns int
+	return createFrame("GLUETEXTBUTTON", name, owner, inheritTemplate, createContext)
+
+/** Returns the named command button frame.
+	In WC3 1.32+, moving command buttons through origin frames can glitch, so the named frames are usually safer. */
+public function getCommandButton(int index) returns int
+	return getFrame("CommandButton_" + index, 0)
+
+/** Returns the named inventory button frame.
+	In WC3 1.32+, moving item buttons through origin frames can glitch, so the named frames are usually safer. */
+public function getInventoryButton(int index) returns int
+	return getFrame("InventoryButton_" + index, 0)
+
+/** Destroys a frame.
+	Unsafe for most multiplayer UI because destroying frames can desync or destabilize frame state after save/load.
+	Do not call on String or Texture SimpleFrame children.
+	Prefer hide(), disable() and reuse cached frames. */
+public function int.destroyUnsafe()
+	DzDestroyFrame(this)
+
+/** Removes a frame.
+	Unsafe for most multiplayer UI because destroying frames can desync or destabilize frame state after save/load.
+	Do not call on String or Texture SimpleFrame children.
+	Prefer hide(), disable() and reuse cached frames. */
+@deprecated("Destroying UI frames can desync or break save/load. Prefer hide()/disable() and reuse frames; use destroyUnsafe() only if you know it is safe.")
+public function int.remove()
+	this.destroyUnsafe()
+
+/**	Places the frame at the center of the screen */
+public function int.setCenter()
+	DzFrameSetAbsolutePoint(this, DZ_FRAMEPOINT_CENTER, SCREEN_CENTER.x, SCREEN_CENTER.y)
+
+/**	Sets the frame position to an absolute x, y point on the screen.
+	For the x-axis, the normal 4:3 UI range is 0.0 to 0.8.
+	For the y-axis, the normal 4:3 UI range is 0.0 to 0.6.
+	Some SimpleFrames and specially parented frames can leave this area. */
+public function int.setAbsPoint(int point, real x, real y)
+	DzFrameSetAbsolutePoint(this, point, x, y)
+
+/**	Sets the frame position to an absolute x, y point on the screen.
+	For the x-axis, the normal 4:3 UI range is 0.0 to 0.8.
+	For the y-axis, the normal 4:3 UI range is 0.0 to 0.6.
+	Some SimpleFrames and specially parented frames can leave this area. */
+public function int.setAbsPoint(int point, vec2 pos)
+	DzFrameSetAbsolutePoint(this, point, pos.x, pos.y)
+
+/** Clears all existing anchors and then places the frame at an absolute screen point.
+	This is the safer default when repositioning existing/default frames. */
+public function int.clearAndSetAbsPoint(int point, real x, real y)
+	this.clearAllPoints()
+	this.setAbsPoint(point, x, y)
+
+/** Clears all existing anchors and then places the frame at an absolute screen point.
+	This is the safer default when repositioning existing/default frames. */
+public function int.clearAndSetAbsPoint(int point, vec2 pos)
+	this.clearAllPoints()
+	this.setAbsPoint(point, pos)
+
+/** Sets the frame's anchor point position to the one of the given frame's anchor */
+public function int.setPoint(int point, int relative, int relativePoint)
+	DzFrameSetPoint(this, point, relative, relativePoint, 0, 0)
+
+/** Sets the frame's anchor point position to the one of the given frame's anchor with an offset */
+public function int.setPoint(int point, int relative, int relativePoint, vec2 offset)
+	DzFrameSetPoint(this, point, relative, relativePoint, offset.x, offset.y)
+
+/** Sets the frame's anchor point position to the one of the given frame's anchor with an offset */
+public function int.setPoint(int point, int relative, int relativePoint, real offsetX, real offsetY)
+	DzFrameSetPoint(this, point, relative, relativePoint, offsetX, offsetY)
+
+/** Clears all existing anchors and then anchors this frame to another frame.
+	This is the safer default when repositioning existing/default frames. */
+public function int.clearAndSetPoint(int point, int relative, int relativePoint)
+	this.clearAllPoints()
+	this.setPoint(point, relative, relativePoint)
+
+/** Clears all existing anchors and then anchors this frame to another frame with an offset.
+	This is the safer default when repositioning existing/default frames. */
+public function int.clearAndSetPoint(int point, int relative, int relativePoint, vec2 offset)
+	this.clearAllPoints()
+	this.setPoint(point, relative, relativePoint, offset)
+
+/** Clears all existing anchors and then anchors this frame to another frame with an offset.
+	This is the safer default when repositioning existing/default frames. */
+public function int.clearAndSetPoint(int point, int relative, int relativePoint, real offsetX, real offsetY)
+	this.clearAllPoints()
+	this.setPoint(point, relative, relativePoint, offsetX, offsetY)
+
+/** Frees the frame from any relative or absolute anchor points */
+public function int.clearAllPoints()
+	DzFrameClearAllPoints(this)
+
+/** Copy all the anchor points of the given frame */
+public function int.setAllPoints(int relative)
+	DzFrameSetAllPoints(this, relative)
+
+/** Shows or hides the frame.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setVisible(bool flag)
+	setDzFrameVisible(this, flag)
+
+/** Shows or hides the frame to the given player.
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.setVisible(player p, bool flag)
+	if localPlayer == p or p == null
+		this.setVisible(flag)
+
+/** Shows the frame */
+public function int.show()
+	this.setVisible(true)
+
+/** Shows the frame to the specific player */
+public function int.show(player p)
+	this.setVisible(p, true)
+
+/** Hides the frame */
+public function int.hide()
+	this.setVisible(false)
+
+/** Hides the frame to the specific player */
+public function int.hide(player p)
+	this.setVisible(p, false)
+
+/** Hides and disables the frame so it cannot block mouse input while invisible. */
+public function int.hideAndDisable()
+	this.hide()
+	this.disable()
+
+/** Hides and disables the frame for the specific player so it cannot block mouse input while invisible. */
+public function int.hideAndDisable(player p)
+	this.hide(p)
+	this.disable(p)
+
+/** Shows and enables the frame. */
+public function int.showAndEnable()
+	this.show()
+	this.enable()
+
+/** Shows and enables the frame for the specific player. */
+public function int.showAndEnable(player p)
+	this.show(p)
+	this.enable(p)
+
+/** Returns whether the frame is visible or not.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.isVisible() returns bool
+	return isDzFrameVisible(this)
+
+/** Returns whether the frame is visible or not for given player.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.isVisible(player p) returns boolean
+	return localPlayer == p or p == null ? this.isVisible() : false
+
+/** Returns the frame's name */
+public function int.getName() returns string
+	return DzFrameGetName(this)
+
+/** Fires a click a event on the frame */
+public function int.click()
+	DzClickFrame(this)
+
+/** Returns the text value of the text frame.
+	This is local UI state and can differ per player. Use getTriggerFrameText() inside editbox frame events for synced input. */
+public function int.getText() returns string
+	return DzFrameGetText(this)
+
+/** Sets the text value of the text frame */
+public function int.setText(string text)
+	DzFrameSetText(this, text)
+
+/** Sets the text value of the text frame for the specific player.
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.setText(player p, string text)
+	if localPlayer == p or p == null
+		this.setText(text)
+
+/** Returns the maximum allowed text size of the text frame */
+public function int.getTextSizeLimit() returns integer
+	return DzFrameGetTextSizeLimit(this)
+
+/** Sets the maximum allowed text size of the text frame.
+	Editbox event text returned by getTriggerFrameText() is limited by Warcraft III to roughly 255 characters. */
+public function int.setTextSizeLimit(integer size)
+	DzFrameSetTextSizeLimit(this, size)
+
+/** Sets the text color of the text frame.
+	The color channels are expected in the range 0 to 255. */
+public function int.setTextColor(colorA color)
+	DzFrameSetTextColor(this, DzGetColor(color.alpha, color.red, color.green, color.blue))
+
+/** Sets the text color of the text frame as a packed Warcraft III color integer. */
+public function int.setTextColor(integer color)
+	DzFrameSetTextColor(this, color)
+
+/** Enables or disables the user interaction for the frame.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setFocus(bool flag)
+	DzFrameSetFocus(this, flag)
+
+/** Enables or disables the user interaction for the frame for given player.
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.setFocus(player p, bool flag)
+	if localPlayer == p or p == null
+		this.setFocus(flag)
+
+/** Removes the focus from a given frame by disable and instantly enabling it. Mandatory for Frames of type 'SIMPLE' */
+public function int.unfocus()
+	if this.isEnabled()
+		this.disable()
+		this.enable()
+	else
+		this.enable()
+		this.disable()
+
+	this.setFocus(false)
+
+/** Removes the focus from a given frame by disable and instantly enabling it for given player. Mandatory for Frames of type 'SIMPLE' */
+public function int.unfocus(player p)
+	if this.isEnabled(p)
+		this.disable(p)
+		this.enable(p)
+	else
+		this.enable(p)
+		this.disable(p)
+
+	this.setFocus(p, false)
+
+/** Releases keyboard focus from a clicked frame by toggling enable state and clearing focus.
+	Useful for buttons and editboxes that would otherwise steal Warcraft III hotkeys. */
+public function int.releaseKeyboardFocus()
+	this.unfocus()
+
+/** Releases keyboard focus from a clicked frame for the specific player by toggling enable state and clearing focus. */
+public function int.releaseKeyboardFocus(player p)
+	this.unfocus(p)
+
+/** Sets the model of the model frame */
+public function int.setModel(string modelFile, integer cameraIndex)
+	DzFrameSetModel(this, modelFile, cameraIndex, 0)
+
+/** Returns the state of the frame.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.isEnabled() returns bool
+	if HaveSavedBoolean(frameState, this, ENABLE_NATIVE_UNSAFE_KEY)
+		return true
+	return DzFrameGetEnable(this)
+
+/** Returns the state of the frame for given player.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.isEnabled(player p) returns boolean
+	return localPlayer == p or p == null ? this.isEnabled() : false
+
+/** Enables or disables an interactive frame.
+	DzAPI 1.27 only accepts controls such as buttons, text and inputs. Known FRAME, BACKDROP,
+	SPRITE and SimpleFrame handles are ignored here because passing them to DzFrameSetEnable can crash. */
+public function int.setEnabled(bool enabled)
+	if not HaveSavedBoolean(frameState, this, ENABLE_NATIVE_UNSAFE_KEY)
+		DzFrameSetEnable(this, enabled)
+
+/** Enables the frame */
+public function int.enable()
+	this.setEnabled(true)
+
+/** Disables the frame */
+public function int.disable()
+	this.setEnabled(false)
+
+/** Enables the frame for the player p.
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.enable(player p)
+	if localPlayer == p or p == null
+		this.enable()
+
+/** Disables the frame for the player p.
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.disable(player p)
+	if localPlayer == p or p == null
+		this.disable()
+
+/** Returns the alpha value of the frame in the range 0 to 255, for frame types that support alpha.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.getAlpha() returns int
+	return DzFrameGetAlpha(this)
+
+/** Sets the alpha value of the frame in the range 0 to 255, for frame types that support alpha.
+	Verified to work on backdrops, images and glue buttons (on a glue button the fade covers the whole
+	button, child backdrops included). Apply it AFTER the frame has been parented, anchored and sized:
+	alpha set on a freshly created frame before a layout positions it is wiped, so set it once the
+	frame is in its final place. Reads as "disabled" to players, so prefer it for genuinely inactive
+	elements rather than as a "selected / active" highlight.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setAlpha(integer alpha)
+	DzFrameSetAlpha(this, alpha)
+
+/** Sets the alpha value of the frame in the range 0 to 255 for the given player, for frame types that support alpha.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setAlpha(player p, integer alpha)
+	if localPlayer == p or p == null
+		this.setAlpha(alpha)
+
+/** Unknown */
+public function int.setSpriteAnimate(integer primaryProp, integer flags)
+	DzFrameSetAnimate(this, primaryProp, flags != 0)
+
+/** Sets the texture of the frame.
+		texFile: the path of the texture
+		flag: texture flag passed to DzFrameSetTexture, usually 0
+		blend: true to keep transparency */
+public function int.setTexture(string texFile, integer flag, bool _blend)
+	// DzAPI has no blend-mode argument. Keep it for source compatibility.
+	DzFrameSetTexture(this, texFile, flag)
+
+/** Sets the texture of the frame for the specific player
+	texFile: the path of the texture
+	flag: texture flag passed to DzFrameSetTexture, usually 0
+	blend: true to keep transparency
+	This is a local visual update; acquire/create the frame handle for all players before using player-local changes. */
+public function int.setTexture(player p, string texFile, integer flag, bool blend)
+	if localPlayer == p or p == null
+		this.setTexture(texFile, flag, blend)
+
+/** Sets the frame's scaling value.
+	Frame's size, children frames and relative anchor point offsets scale.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setScale(real scale)
+	DzFrameSetScale(this, scale)
+
+/** Sets a frame's tooltip frame, if it has some tooltip subframe.
+	Tooltip owner and tooltip frame should belong to the same Frame/SimpleFrame group.
+	This cannot really be undone, and calling it repeatedly with the same owner/tooltip pair can crash on hover. */
+public function int.setTooltip(int tooltip)
+	DzFrameSetTooltip(this, tooltip)
+
+/** Forces the mouse cursor to stay (caged) inside of the frame */
+public function int.cageMouse(bool enable)
+	DzFrameCageMouse(this, enable)
+
+/** Returns the specific value of the frame, e.g. for sliders.
+	This is local UI state and can differ per player. Prefer getTriggerFrameValue() inside frame events for synced input. */
+public function int.getValue() returns real
+	return DzFrameGetValue(this)
+
+/** Sets the specific value of the frame (e.g. for sliders) */
+public function int.setValue(real value)
+	DzFrameSetValue(this, value)
+
+/** Sets the specific minimum and maximum value of the frame (e.g. for sliders) */
+public function int.setMinMax(real minValue, real maxValue)
+	DzFrameSetMinMaxValue(this, minValue, maxValue)
+
+/** Sets the step size of the frame (e.g. for sliders) */
+public function int.setStepSize(real stepSize)
+	DzFrameSetStepValue(this, stepSize)
+
+/** Sets the width of the frame in UI coordinate units, preserving its current height.
+	The current height is local UI state and can differ per player. */
+public function int.setWidth(real width)
+	DzFrameSetSize(this, width, this.getHeight())
+
+/** Sets the height of the frame in UI coordinate units, preserving its current width.
+	The current width is local UI state and can differ per player. */
+public function int.setHeight(real height)
+	DzFrameSetSize(this, this.getWidth(), height)
+
+/** Sets the width and height of the frame in UI coordinate units. */
+public function int.setSize(real width, real height)
+	DzFrameSetSize(this, width, height)
+
+/** Sets vertex colour; channels are in the range 0 to 255.
+	BzAPI documents SimpleStatusBar support. Ordinary BACKDROP / glue-button textures
+	are not tinted by this call; use setTexture for those, or setTextColor for text. */
+public function int.setVertexColor(color pcolor)
+	DzFrameSetVertexColor(this, DzGetColor(255, pcolor.red, pcolor.green, pcolor.blue))
+
+/** Sets vertex colour with alpha. BzAPI documents SimpleStatusBar support. */
+public function int.setVertexColor(colorA color)
+	DzFrameSetVertexColor(this, DzGetColor(color.alpha, color.red, color.green, color.blue))
+
+/** Sets packed vertex colour. BzAPI documents SimpleStatusBar support. */
+public function int.setVertexColor(integer color)
+	DzFrameSetVertexColor(this, color)
+
+/** If multiple frames cover each other, the one with the highest level will receive mouse events and will be drawn above the others. If several frames have the same level, the last created one is prioritized.
+	Do not call on String or Texture SimpleFrame children. */
+public function int.setLevel(integer level)
+	DzFrameSetPriority(this, level)
+
+/** Searches for the frames parent frame.
+	Should be used with caution as getting the parent of any top most frame will lead into a void crash */
+public function int.getParent() returns int
+	return DzFrameGetParent(this)
+
+/** Sets the parent frame of the frame.
+	Do not mix Frame and SimpleFrame groups, and never set a frame's parent to itself or one of its descendants. */
+public function int.setParent(int parent)
+	DzFrameSetParent(this, parent)
+
+/** Returns the frame's height in UI coordinate units.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.getHeight() returns real
+	return DzFrameGetHeight(this)
+
+/** Returns the frame's width in UI coordinate units.
+	This is local UI state and can differ per player. Do not use it directly for synced game logic. */
+public function int.getWidth() returns real
+	return DzFrameGetWidth(this)
+
+/** Sets the text font of the text frame.
+	Use for TEXT frames and String SimpleFrame children. Calling it on generic SimpleFrames can crash. */
+public function int.setFont(string fileName, real height, integer flags)
+	DzFrameSetFont(this, fileName, height, flags)
+
+/** Sets horizontal text alignment using DZ_TEXT_JUSTIFY_LEFT/CENTER/RIGHT.
+	BzAPI expects 0/1/2, not the compatibility constants (3/4/5) or a bitmask. */
+public function int.setTextAlignment(int horz)
+	if horz == DZ_TEXT_JUSTIFY_LEFT
+		DzFrameSetTextAlignment(this, 0)
+	else if horz == DZ_TEXT_JUSTIFY_CENTER
+		DzFrameSetTextAlignment(this, 1)
+	else if horz == DZ_TEXT_JUSTIFY_RIGHT
+		DzFrameSetTextAlignment(this, 2)
+
+/** Compatibility overload. BzAPI cannot set vertical alignment; configure it in FDF.
+	Only horz (DZ_TEXT_JUSTIFY_LEFT/CENTER/RIGHT) is applied. */
+public function int.setTextAlignment(int _vert, int horz)
+	this.setTextAlignment(horz)
+
+/** Enables or disables auto positioning of ui elements */
+public function enableUIAutoPosition(bool flag)
+	DzOriginalUIAutoResetPoint(flag)
+
+/** Hides or shows all origin frames except DZ_ORIGIN_FRAME_WORLD_FRAME */
+public function setOriginFramesVisible(bool flag)
+	// DzAPI can hide the stock interface on 1.27, but cannot reliably restore it.
+	if not flag
+		DzFrameHideInterface()
+
+/** Hides all origin frames except DZ_ORIGIN_FRAME_WORLD_FRAME */
+public function hideOriginFrames()
+	setOriginFramesVisible(false)
+
+/** Shows all origin frames except DZ_ORIGIN_FRAME_WORLD_FRAME */
+public function showOriginFrames()
+	setOriginFramesVisible(true)
+
+/** Loads a toc file from the given path, to include custom fdf files from, returns true on success.
+	Load the TOC before creating or inheriting templates from it.
+	TOC order matters: list included/base FDF files before FDF files that depend on them.
+	TOC file endings are fragile; keep at least one empty final line for CRLF files and two for LF-only files. */
+public function loadTOCFile(string tocFile) returns bool
+	DzLoadToc(tocFile)
+	// DzLoadToc does not expose Blizzard's success boolean.
+	return true
+
+/** Returns the local fullscreen frame width in Warcraft III UI coordinate units.
+	A fullscreen reference frame usually uses this width and height 0.6, anchored by DZ_FRAMEPOINT_BOTTOM at (0.4, 0.0).
+	The value depends on the local client's aspect ratio and can differ per player. */
+public function getFullscreenFrameWidth() returns real
+	let width = DzGetClientWidth()
+	let height = DzGetClientHeight()
+	if width <= 0 or height <= 0
+		return 0.8
+	return I2R(width) / I2R(height) * 0.6
+
+/** Returns the local fullscreen frame size in Warcraft III UI coordinate units.
+	The value depends on the local client's aspect ratio and can differ per player. */
+public function getFullscreenFrameSize() returns vec2
+	return vec2(getFullscreenFrameWidth(), 0.6)
+
+/** Sizes and positions this frame as a fullscreen reference frame.
+	The size depends on the local client's aspect ratio and can differ per player. */
+public function int.setFullscreenReference()
+	this.setSize(getFullscreenFrameWidth(), 0.6)
+	this.setAbsPoint(DZ_FRAMEPOINT_BOTTOM, 0.4, 0.0)
+
+int mouseCage = 0
+
+function getMouseCage() returns int
+	if mouseCage == 0
+		mouseCage = createFrame("FRAME", "SetMousePositionCage", GAME_UI, null, 0)
+		mouseCage.setSize(0.0001, 0.0001)
+	return mouseCage
+
+/** Places the mouse cursor at the given point of the screen. Uses the same coodinate system as framehandles */
+public function setMousePos(vec2 pos)
+	getMouseCage()..clearAllPoints()
+	..setPoint(DZ_FRAMEPOINT_BOTTOMLEFT, GAME_UI, DZ_FRAMEPOINT_BOTTOMLEFT, pos)
+	..cageMouse(true)
+	..cageMouse(false)
+
+/** Places the mouse cursor in the center of the frame */
+public function int.setMousePos()
+	getMouseCage()..clearAllPoints()
+	..setPoint(DZ_FRAMEPOINT_CENTER, this, DZ_FRAMEPOINT_CENTER)
+	..cageMouse(true)
+	..cageMouse(false)
+
+/** Places the mouse cursor at the given point of the screen. Uses the window's coordinate system (in pixels) where (0, 0) is top-left corner of the window and positive direction of Y axis is "down" */
+public function setMousePos(integer x, integer y)
+	DzSetMousePos(x, y)
+
+public function enableCursor()
+	// No cursor-visibility native is exposed by the supplied 1.27 APIs.
+	return
+
+public function disableCursor()
+	// No cursor-visibility native is exposed by the supplied 1.27 APIs.
+	return
+
+public function setCursorEnabled(bool _flag)
+	// Kept as a no-op for source compatibility on 1.27.
+	return
+
+/** Get number of children frames of given frame. Only direct child frames are counted */
+public function int.getChildrenCount() returns int
+	return DzFrameGetChildrenCount(this)
+
+/** Get child frame handle from given index.
+	The index must be in the range 0 <= index < getChildrenCount(). Out-of-bounds access can crash. */
+public function int.getChild(int index) returns int
+	return DzFrameGetChild(this, index)

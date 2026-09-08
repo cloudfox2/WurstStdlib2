@@ -1,0 +1,161 @@
+package SyncSimple
+import LinkedList
+import ChunkedString
+import GameStatus
+
+/* 	Simple String syncing through the KKWE/YDWE 1.27 Dz API with chunked string support for big data.
+	For improved safety, sync operations are performed sequentially - one string/chunk at a time.
+
+	Sync a string:
+	>	myString.sync(p) (synced) ->
+	>		Log.info("string synced: " + synced.getUnsafeString())
+
+	Sync a ChunkedString:
+	>	myChunkedString.sync(p) (synced) ->
+	>		while synced.hasChunk()
+	>			Log.info("chunked string synced: " + synced.readChunk())
+
+*/
+
+@configurable public constant DEFAULT_PREFIX = "S"
+@configurable public constant LAST_CHUNK_PREFIX = "T"
+@configurable public constant SYNC_IN_REPLAYS = false
+
+
+public interface BoolSyncListener
+	function onDataSynced(bool data)
+
+public interface IntSyncListener
+	function onDataSynced(int data)
+
+public interface RealSyncListener
+	function onDataSynced(real data)
+
+public interface StringSyncListener
+	function onDataSynced(string data)
+
+public interface BufferSyncListener
+	function onDataSynced(ChunkedString buffer)
+
+/** Generic sync listener for arbitrary types that can be cast to/from int.
+	Only works for values representable as an int (class instances, handle ids).
+	The synced object must already be in sync across all clients. */
+public interface AnySyncListener<T>
+	function onDataSynced(T data)
+
+constant syncQueue = new LinkedList<SyncData>
+
+/** Syncs a bool from the given player. */
+public function bool.sync(player p, BoolSyncListener listener)
+	this.toString().sync(p) data ->
+		listener.onDataSynced(data.toBool())
+		destroy listener
+
+/** Syncs an int from the given player. */
+public function int.sync(player p, IntSyncListener listener)
+	this.toString().sync(p) data ->
+		listener.onDataSynced(data.toInt())
+		destroy listener
+
+/** Syncs a real from the given player. */
+public function real.sync(player p, RealSyncListener listener)
+	this.toString().sync(p) data ->
+		listener.onDataSynced(data.toReal())
+		destroy listener
+
+/** Syncs an arbitrary type from the given player.
+	Only works for values representable as an int handle/index (class instances, handle ids).
+	The synced object must already be in sync across clients. Listener is destroyed after firing. */
+public function player.sync<T>(T data, AnySyncListener<T> listener)
+	let thisData = data castTo int
+	thisData.toString().sync(this) syncedData ->
+		listener.onDataSynced(syncedData.toInt() castTo T)
+		destroy listener
+
+/** Syncs a single string from the given player. */
+public function string.sync(player p, StringSyncListener listener)
+	syncQueue.enqueue(new SyncData(p, listener, this))
+
+	if syncQueue.size() == 1
+		checkQueue()
+
+/** Syncs a chunked string from the given player. */
+public function ChunkedString.sync(player p, BufferSyncListener listener)
+	syncQueue.enqueue(new SyncData(p, listener, this))
+
+	if syncQueue.size() == 1 and shouldSync()
+		checkQueue()
+
+class SyncData
+	StringSyncListener slistener = null
+	BufferSyncListener blistener = null
+	player syncer = null
+	string data = null
+	ChunkedString buffer = null
+	ChunkedString syncBuffer = null
+
+	construct(player syncer, StringSyncListener slistener, string data)
+		this.slistener = slistener
+		this.data = data
+		this.syncer = syncer
+
+	construct(player syncer, BufferSyncListener blistener, ChunkedString data)
+		this.blistener = blistener
+		this.buffer = data
+		this.syncer = syncer
+		this.syncBuffer = new ChunkedString()
+
+	ondestroy
+		if slistener != null
+			destroy slistener
+		if blistener != null
+			destroy blistener
+		if buffer != null
+			destroy buffer
+
+function checkQueue()
+	if not syncQueue.isEmpty()
+		let syncData = syncQueue.getFirst()
+		if syncData.data != null
+			if localPlayer == syncData.syncer
+				DzSyncData(DEFAULT_PREFIX, syncData.data)
+		else
+			let data = syncData.buffer.readChunk()
+			let hasChunk = syncData.buffer.hasChunk()
+			if localPlayer == syncData.syncer
+				if hasChunk
+					DzSyncData(DEFAULT_PREFIX, data)
+				else
+					DzSyncData(LAST_CHUNK_PREFIX, data)
+
+
+function shouldSync() returns boolean
+	return SYNC_IN_REPLAYS or gameStatus != REPLAY
+
+init
+	let trig = CreateTrigger()
+	DzTriggerRegisterSyncData(trig, DEFAULT_PREFIX, false)
+	DzTriggerRegisterSyncData(trig, LAST_CHUNK_PREFIX, false)
+
+	trig.addAction() ->
+		let eventData = DzGetTriggerSyncData()
+		let eventPrefix = DzGetTriggerSyncPrefix()
+		let syncData = syncQueue.getFirst()
+		if syncData.data != null
+			syncData.slistener.onDataSynced(eventData)
+			syncQueue.dequeue()
+			destroy syncData
+		else
+			// Defensive: syncBuffer can be null on the buffered path in rare
+			// cases (observed under Campaign Edition / replay). Recreate it so a
+			// late/duplicate sync event cannot null-crash the whole sync queue.
+			if syncData.syncBuffer == null
+				syncData.syncBuffer = new ChunkedString()
+			syncData.syncBuffer.append(eventData)
+			if eventPrefix == LAST_CHUNK_PREFIX
+				syncData.blistener.onDataSynced(syncData.syncBuffer)
+				syncQueue.dequeue()
+				destroy syncData
+
+		if shouldSync()
+			checkQueue()
