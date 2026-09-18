@@ -29,6 +29,9 @@ public function doAfter(real timeToWait, CallbackSingle cb) returns CallbackSing
 /** Execute an action with a 0-second timer delay.
 	The callback object is destroyed afterwards.
 */
+public function doNull(CallbackSingle cb) returns CallbackSingle
+	return doAfter(0, cb)
+
 public function nullTimer(CallbackSingle cb) returns CallbackSingle
 	return doAfter(0, cb)
 
@@ -102,6 +105,38 @@ public function timer.doPeriodicallyTimed(real interval, real timerDuration, Cal
 */
 public function doPeriodicallyTimed(real interval, real timerDuration, CallbackCounted cb) returns CallbackCounted
 	return getTimer().doPeriodicallyTimed(interval, timerDuration, cb)
+
+
+public function doPeriod(real time, CallbackPeriodic cb) returns CallbackPeriodic
+	cb.start(time)
+	return cb
+	
+/**第一次立即执行*/
+public function doPeriodInstant(real time, CallbackPeriodic cb) returns CallbackPeriodic
+	cb.call(cb)
+	cb.start(time)
+	return cb
+
+public function doCounted(real time, int count, CallbackCounted cb) returns CallbackCounted
+	cb.start(time, count)
+	return cb
+
+/**第一次直接执行*/
+public function doCountedInstant(real time, int count, CallbackCounted cb) returns CallbackCounted
+	cb.count = count
+	cb.call(cb)
+	cb.start(time, count - 1)
+	return cb
+
+public function doTimed(real time, real duration, CallbackCounted cb) returns CallbackCounted
+	let count = (duration / time).round()
+	return doCounted(time, count, cb)
+
+/**第一次直接执行*/
+public function doTimedInstant(real time, real duration, CallbackCounted cb) returns CallbackCounted
+	let count = (duration / time).round() + 1
+	return doCountedInstant(time, count, cb)
+
 
 //Timer Stuff
 public abstract class CallbackSingle
