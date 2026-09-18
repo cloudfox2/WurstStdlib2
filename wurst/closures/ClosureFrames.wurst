@@ -26,12 +26,6 @@ public function getTriggerFrameText() returns string
 public function getTriggerFrameValue() returns real
     return currentTriggerFrame.getValue()
 
-public function int.onCheckboxCheck(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_CHECKBOX_CHECKED)
-
-public function int.onCheckboxUncheck(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_CHECKBOX_UNCHECKED)
-
 public function int.onClick(FrameHandleListener listener) returns FrameHandleListener
     return addListenerForFrame(listener, this, DZ_FRAMEEVENT_CONTROL_CLICK)
 
@@ -39,23 +33,8 @@ public function int.onClick(FrameHandleListener listener) returns FrameHandleLis
 public function int.onClickReleaseFocus() returns FrameHandleListener
     return addListenerForFrame(new ReleaseKeyboardFocusFrameListener(), this, DZ_FRAMEEVENT_CONTROL_CLICK)
 
-public function int.onDialogAccept(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_DIALOG_ACCEPT)
-
-public function int.onDialogCancel(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_DIALOG_CANCEL)
-
-public function int.onEditboxEnter(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_EDITBOX_ENTER)
-
-public function int.onEditboxChange(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_EDITBOX_TEXT_CHANGED)
-
 public function int.onMouseDoubleClick(FrameHandleListener listener) returns FrameHandleListener
     return addListenerForFrame(listener, this, DZ_FRAMEEVENT_MOUSE_DOUBLECLICK)
-
-public function int.onMouseDown(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_MOUSE_DOWN)
 
 public function int.onMouseEnter(FrameHandleListener listener) returns FrameHandleListener
     return addListenerForFrame(listener, this, DZ_FRAMEEVENT_MOUSE_ENTER)
@@ -69,34 +48,12 @@ public function int.onMouseUp(FrameHandleListener listener) returns FrameHandleL
 public function int.onMouseWheel(FrameHandleListener listener) returns FrameHandleListener
     return addListenerForFrame(listener, this, DZ_FRAMEEVENT_MOUSE_WHEEL)
 
-public function int.onPopupMenuItemChange(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_POPUPMENU_ITEM_CHANGED)
-
-public function int.onSliderValueChange(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_SLIDER_VALUE_CHANGED)
-
-public function int.onSpriteAnimUpdate(FrameHandleListener listener) returns FrameHandleListener
-    return addListenerForFrame(listener, this, DZ_FRAMEEVENT_SPRITE_ANIM_UPDATE)
 
 function registerDzFrameEvent(int frame, int eventType)
-    if eventType == DZ_FRAMEEVENT_CHECKBOX_CHECKED
-        DzFrameSetScriptByCode(frame, eventType, function onCheckboxCheckEvent, false)
-    else if eventType == DZ_FRAMEEVENT_CHECKBOX_UNCHECKED
-        DzFrameSetScriptByCode(frame, eventType, function onCheckboxUncheckEvent, false)
-    else if eventType == DZ_FRAMEEVENT_CONTROL_CLICK
+    if eventType == DZ_FRAMEEVENT_CONTROL_CLICK
         DzFrameSetScriptByCode(frame, eventType, function onClickEvent, false)
-    else if eventType == DZ_FRAMEEVENT_DIALOG_ACCEPT
-        DzFrameSetScriptByCode(frame, eventType, function onDialogAcceptEvent, false)
-    else if eventType == DZ_FRAMEEVENT_DIALOG_CANCEL
-        DzFrameSetScriptByCode(frame, eventType, function onDialogCancelEvent, false)
-    else if eventType == DZ_FRAMEEVENT_EDITBOX_ENTER
-        DzFrameSetScriptByCode(frame, eventType, function onEditboxEnterEvent, false)
-    else if eventType == DZ_FRAMEEVENT_EDITBOX_TEXT_CHANGED
-        DzFrameSetScriptByCode(frame, eventType, function onEditboxChangeEvent, false)
     else if eventType == DZ_FRAMEEVENT_MOUSE_DOUBLECLICK
         DzFrameSetScriptByCode(frame, eventType, function onMouseDoubleClickEvent, false)
-    else if eventType == DZ_FRAMEEVENT_MOUSE_DOWN
-        DzFrameSetScriptByCode(frame, eventType, function onMouseDownEvent, false)
     else if eventType == DZ_FRAMEEVENT_MOUSE_ENTER
         DzFrameSetScriptByCode(frame, eventType, function onMouseEnterEvent, false)
     else if eventType == DZ_FRAMEEVENT_MOUSE_LEAVE
@@ -105,12 +62,6 @@ function registerDzFrameEvent(int frame, int eventType)
         DzFrameSetScriptByCode(frame, eventType, function onMouseUpEvent, false)
     else if eventType == DZ_FRAMEEVENT_MOUSE_WHEEL
         DzFrameSetScriptByCode(frame, eventType, function onMouseWheelEvent, false)
-    else if eventType == DZ_FRAMEEVENT_POPUPMENU_ITEM_CHANGED
-        DzFrameSetScriptByCode(frame, eventType, function onPopupMenuItemChangeEvent, false)
-    else if eventType == DZ_FRAMEEVENT_SLIDER_VALUE_CHANGED
-        DzFrameSetScriptByCode(frame, eventType, function onSliderValueChangeEvent, false)
-    else if eventType == DZ_FRAMEEVENT_SPRITE_ANIM_UPDATE
-        DzFrameSetScriptByCode(frame, eventType, function onSpriteAnimUpdateEvent, false)
 
 function addListenerForFrame(FrameHandleListener listener, int frame, int eventType) returns FrameHandleListener
     listener.frame = frame
@@ -147,32 +98,11 @@ function dispatchDzFrameEvent(int eventType)
     currentTriggerFrameEvent = previousEvent
     currentTriggerFramePlayer = previousPlayer
 
-function onCheckboxCheckEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_CHECKBOX_CHECKED)
-
-function onCheckboxUncheckEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_CHECKBOX_UNCHECKED)
-
 function onClickEvent()
     dispatchDzFrameEvent(DZ_FRAMEEVENT_CONTROL_CLICK)
 
-function onDialogAcceptEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_DIALOG_ACCEPT)
-
-function onDialogCancelEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_DIALOG_CANCEL)
-
-function onEditboxEnterEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_EDITBOX_ENTER)
-
-function onEditboxChangeEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_EDITBOX_TEXT_CHANGED)
-
 function onMouseDoubleClickEvent()
     dispatchDzFrameEvent(DZ_FRAMEEVENT_MOUSE_DOUBLECLICK)
-
-function onMouseDownEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_MOUSE_DOWN)
 
 function onMouseEnterEvent()
     dispatchDzFrameEvent(DZ_FRAMEEVENT_MOUSE_ENTER)
@@ -185,15 +115,6 @@ function onMouseUpEvent()
 
 function onMouseWheelEvent()
     dispatchDzFrameEvent(DZ_FRAMEEVENT_MOUSE_WHEEL)
-
-function onPopupMenuItemChangeEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_POPUPMENU_ITEM_CHANGED)
-
-function onSliderValueChangeEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_SLIDER_VALUE_CHANGED)
-
-function onSpriteAnimUpdateEvent()
-    dispatchDzFrameEvent(DZ_FRAMEEVENT_SPRITE_ANIM_UPDATE)
 
 public abstract class FrameHandleListener
     int frame = 0
